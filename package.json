@@ -1,0 +1,40 @@
+{
+	"private": true,
+	"name": "homebridge-abode-lights",
+	"version": "1.0.0",
+	"description": "Homebridge plugin for integrating Abode Switches and Dimmers into HomeKit.",
+	"author": "Chris Smith",
+	"license": "MIT",
+	"main": "dist/index.js",
+	"scripts": {
+		"lint": "eslint src/**.ts --max-warnings=0",
+		"build": "rm -rf dist && tsc",
+		"watch": "npm run build && npm link && nodemon"
+	},
+	"engines": {
+		"node": ">=10.17.0",
+		"homebridge": ">=1.0.0"
+	},
+	"keywords": [
+		"homebridge-plugin"
+	],
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/chrisbsmith/homebridge-abode-lights.git"
+	},
+	"bugs": {
+		"url": "https://github.com/chrisbsmith/homebridge-abode-lights/issues"
+	},
+	"devDependencies": {
+		"@types/node": "^14.11.8",
+		"@types/uuid": "^8.3.0",
+		"@types/ws": "^7.2.7",
+		"homebridge": "^1.1.6",
+		"typescript": "^4.0.3"
+	},
+	"dependencies": {
+		"axios": "^0.21.1",
+		"uuid": "^8.3.1",
+		"ws": "^7.3.1"
+	}
+}

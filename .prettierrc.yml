@@ -1,0 +1,4 @@
+arrowParens: "always"
+trailingComma: "all"
+useTabs: true
+printWidth: 120

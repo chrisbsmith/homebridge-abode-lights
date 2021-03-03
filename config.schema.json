@@ -1,0 +1,21 @@
+{
+	"pluginAlias": "Abode Lights",
+	"pluginType": "platform",
+	"singular": true,
+	"headerDisplay": "Enter the login credentials for your Abode account.",
+	"schema": {
+		"type": "object",
+		"properties": {
+			"email": {
+				"title": "Email",
+				"type": "string",
+				"required": true
+			},
+			"password": {
+				"title": "Password",
+				"type": "string",
+				"required": true
+			}
+		}
+	}
+}
