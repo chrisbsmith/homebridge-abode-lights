@@ -1170,9 +1170,9 @@ uri-js@^4.2.2:
   dependencies:
     punycode "^2.1.0"
 
-uuid@^8.3.1:
-  version "8.3.1"
-  resolved "https://registry.npmjs.org/uuid/-/uuid-8.3.1.tgz"
+uuid@^8.3.2:
+  version "8.3.2"
+  resolved "https://registry.yarnpkg.com/uuid/-/uuid-8.3.2.tgz#80d5b5ced271bb9af6c445f21a1a04c606cefbe2"
 
 v8-compile-cache@^2.0.3:
   version "2.3.0"
