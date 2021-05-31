@@ -23,7 +23,10 @@ jobs:
         run: echo "TAG_VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
 
       - name: Get Tag Message
-        run: echo "TAG_MESSAGE=$(git tag -l --format='%(contents)')" >> $GITHUB_ENV
+        # run: echo "TAG_MESSAGE=$(git tag -l --format='%(contents)')" >> $GITHUB_ENV
+        run: echo "TAG_MESSAGE=$(git log --format=%B -n 1)" >> $GITHUB_ENV
+
+
 
       - name: Test
         run: |
