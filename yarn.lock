@@ -65,9 +65,9 @@
   version "7.0.7"
   resolved "https://registry.npmjs.org/@types/json-schema/-/json-schema-7.0.7.tgz"
 
-"@types/node@*", "@types/node@^15.6.1":
-  version "15.6.1"
-  resolved "https://registry.yarnpkg.com/@types/node/-/node-15.6.1.tgz#32d43390d5c62c5b6ec486a9bc9c59544de39a08"
+"@types/node@*", "@types/node@^16.4.13":
+  version "16.4.13"
+  resolved "https://registry.yarnpkg.com/@types/node/-/node-16.4.13.tgz#7dfd9c14661edc65cccd43a29eb454174642370d"
 
 "@types/uuid@^8.3.0":
   version "8.3.0"
