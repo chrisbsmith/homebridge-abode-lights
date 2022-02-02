@@ -42,7 +42,7 @@ export class AbodeSwitchAccessory {
       const status = this.platform.convertSwitchTargetStateToAbodeSwitchStatusInt(value);
       await controlSwitch(this.accessory.context.device.id, status);
       callback();
-    } catch (error) {
+    } catch (error: any) {
       this.platform.log.error('setSwitchState failed', error.message);
       callback(error);
     }
@@ -82,7 +82,7 @@ export class AbodeDimmerAccessory {
       const status = this.platform.convertDimmerTargetStateToAbodeDimmerStatusInt(value);
       await controlDimmer(this.accessory.context.device.id, status);
       callback();
-    } catch (error) {
+    } catch (error: any) {
       this.platform.log.error('setSwitchState failed', error.message);
       callback(error);
     }
@@ -95,7 +95,7 @@ export class AbodeDimmerAccessory {
       const status = this.platform.convertDimmerTargetStateToAbodeDimmerStatusInt(value);
       await controlDimmerBrightness(this.accessory.context.device.id, status);
       callback();
-    } catch (error) {
+    } catch (error: any) {
       this.platform.log.error('setDimmerBrightness failed', error.message);
       callback(error);
     }
