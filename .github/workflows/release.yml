@@ -29,14 +29,8 @@ jobs:
           node-version: "12.x"
           registry-url: "https://registry.npmjs.org"
 
-      - name: Get Tag Version
-        run: echo "TAG_VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
-
-      - name: Get Tag Message
-        run: echo "TAG_MESSAGE=$(git tag -l --format='%(contents)')" >> $GITHUB_ENV
-
       - run: npm install
 
-      - run: npm publish --tag ${TAG_VERSION}
+      - run: npm publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
