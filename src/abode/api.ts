@@ -11,10 +11,10 @@ const credentials = {
 };
 
 export interface AbodeInit {
-	readonly email: string;
-	readonly password: string;
-	readonly logger: Logger;
-	readonly homebridgeVersion: string;
+  readonly email: string;
+  readonly password: string;
+  readonly logger: Logger;
+  readonly homebridgeVersion: string;
 }
 
 export const abodeInit = async (data: AbodeInit) => {
@@ -111,7 +111,7 @@ export const renewSession = async (): Promise<void> => {
     if (oauthToken) {
       auth.oauthToken = oauthToken;
     }
-  } catch (error) {
+  } catch (error: any) {
     log.debug('No session, re-signing in', error);
     try {
       await performAuth();
@@ -157,7 +157,7 @@ const performAuth = async (): Promise<void> => {
 
     const oauthToken = await getOAuthToken();
     auth.oauthToken = oauthToken;
-  } catch (error) {
+  } catch (error: any) {
     log.error('Failed to performAuth:', error.message);
     throw new Error('Failed to sign into Abode account');
   }
@@ -186,45 +186,45 @@ const getSession = async (): Promise<string> => {
 };
 
 export const enum AbodeDeviceType {
-	Switch = 'device_type.power_switch_sensor',
-	Dimmer = 'device_type.dimmer_meter',
+  Switch = 'device_type.power_switch_sensor',
+  Dimmer = 'device_type.dimmer_meter',
 }
 
 export interface AbodeDevice {
-	readonly id: string;
-	readonly type_tag: AbodeDeviceType;
-	readonly name: string;
+  readonly id: string;
+  readonly type_tag: AbodeDeviceType;
+  readonly name: string;
 }
 
 export const enum AbodeSwitchStatus {
-	On = 'On',
-	Off = 'Off',
+  On = 'On',
+  Off = 'Off',
 }
 
 export const enum AbodeSwitchStatusInt {
-	On = 1,
-	Off = 0,
+  On = 1,
+  Off = 0,
 }
 
 export const enum AbodeDimmerStatus {
-	On = 'On',
-	Off = 'Off',
+  On = 'On',
+  Off = 'Off',
 }
 
 export const enum AbodeDimmerStatusInt {
-	On = 1,
-	Off = 0,
+  On = 1,
+  Off = 0,
 }
 
 export interface AbodeSwitchDevice extends AbodeDevice {
-	readonly type_tag: AbodeDeviceType.Switch;
-	readonly status: AbodeSwitchStatus;
+  readonly type_tag: AbodeDeviceType.Switch;
+  readonly status: AbodeSwitchStatus;
 }
 
 export interface AbodeDimmerDevice extends AbodeDevice {
-	readonly type_type: AbodeDeviceType.Dimmer;
-	readonly status: AbodeSwitchStatus;
-	readonly statusEx: number;
+  readonly type_type: AbodeDeviceType.Dimmer;
+  readonly status: AbodeSwitchStatus;
+  readonly statusEx: number;
 }
 
 export const getDevices = async (): Promise<AbodeDevice[]> => {
@@ -234,17 +234,17 @@ export const getDevices = async (): Promise<AbodeDevice[]> => {
 };
 
 export interface AbodeControlSwitchResponse {
-	readonly id: string;
-	readonly status: AbodeSwitchStatusInt;
+  readonly id: string;
+  readonly status: AbodeSwitchStatusInt;
 }
 
 export interface AbodeControlDimmerResponse {
-	readonly id: string;
-	readonly status: AbodeDimmerStatusInt;
+  readonly id: string;
+  readonly status: AbodeDimmerStatusInt;
 }
 export interface AbodeControlDimmerBrightnessResponse {
-	readonly id: string;
-	readonly level: number;
+  readonly id: string;
+  readonly level: number;
 }
 
 export const controlSwitch = async (id: string, status: AbodeSwitchStatusInt): Promise<AbodeControlSwitchResponse> => {
@@ -271,7 +271,7 @@ export const isDeviceTypeDimmer = (device: AbodeDevice): device is AbodeDimmerDe
 };
 
 export const enum AbodeEventType {
-	DeviceUpdate = 'com.goabode.device.update',
+  DeviceUpdate = 'com.goabode.device.update',
 }
 
 const parseCookies = (cookies: string | undefined): { [key: string]: string | undefined } => {

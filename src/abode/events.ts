@@ -73,7 +73,7 @@ export const openSocket = (): void => {
 			const message = JSON.parse(messageJson);
 
 			processEvent(message);
-		} catch (error) {
+		} catch (error: any) {
 			log.debug("Failed to parse message", error.message);
 		}
 	});
@@ -90,7 +90,7 @@ const reopenSocket = () => {
 		try {
 			await renewSession();
 			openSocket();
-		} catch (error) {
+		} catch (error: any) {
 			log.debug("Failed to reopenSocket", error.message);
 		}
 	}, reopenWait);

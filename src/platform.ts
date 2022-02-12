@@ -57,7 +57,7 @@ export class AbodeLightsPlatform implements DynamicPlatformPlugin {
           logger: log,
           homebridgeVersion: api.serverVersion,
         });
-      } catch (error) {
+      } catch (error: any) {
         log.error('Failed to initialize:', error.message);
         return;
       }
@@ -167,7 +167,7 @@ export class AbodeLightsPlatform implements DynamicPlatformPlugin {
           continue;
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       this.log.error('Failed to discoverDevices', error.message);
     }
   }
@@ -211,7 +211,7 @@ export class AbodeLightsPlatform implements DynamicPlatformPlugin {
           continue;
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       this.log.error('Failed to updateStatus', error.message);
     }
   }
