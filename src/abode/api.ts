@@ -65,6 +65,10 @@ http.interceptors.request.use(
     const isSessionPath = config.url === '/api/v1/session';
     config.url = API_BASE_URL + config.url;
 
+    if (!config.headers){
+      config.headers = {};
+    }
+
     config.headers['User-Agent'] = USER_AGENT;
     config.headers['Cookie'] = getAuthCookie();
 
