@@ -1,5 +1,8 @@
 # homebridge-abode-lights
 
+[![verified-by-homebridge](https://badgen.net/badge/homebridge/verified/purple)](https://github.com/homebridge/homebridge/wiki/Verified-Plugins)
+[![npm version](https://badge.fury.io/js/homebridge-abode-lights.svg)](https://badge.fury.io/js/homebridge-abode-lights)
+
 [Homebridge](https://homebridge.io) plugin that integrates [Abode](https://goabode.com) switches and dimmers into HomeKit, as these are not included in their built-in HomeKit support.
 
 _This is an unofficial integration not created by or affiliated with Abode Systems, Inc._
