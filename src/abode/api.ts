@@ -65,7 +65,7 @@ http.interceptors.request.use(
     const isSessionPath = config.url === '/api/v1/session';
     config.url = API_BASE_URL + config.url;
 
-    if (!config.headers){
+    if (!config.headers) {
       config.headers = {};
     }
 
@@ -192,6 +192,8 @@ const getSession = async (): Promise<string> => {
 export const enum AbodeDeviceType {
   Switch = 'device_type.power_switch_sensor',
   Dimmer = 'device_type.dimmer_meter',
+  LightBulb = 'device_type.light_bulb',
+  Hue = "device_type.hue",
 }
 
 export interface AbodeDevice {
@@ -226,9 +228,9 @@ export interface AbodeSwitchDevice extends AbodeDevice {
 }
 
 export interface AbodeDimmerDevice extends AbodeDevice {
-  readonly type_type: AbodeDeviceType.Dimmer;
+  readonly type_tag: AbodeDeviceType.Dimmer;
   readonly status: AbodeSwitchStatus;
-  readonly statusEx: number;
+  readonly brightness: number;
 }
 
 export const getDevices = async (): Promise<AbodeDevice[]> => {

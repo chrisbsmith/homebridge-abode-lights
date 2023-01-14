@@ -8,24 +8,23 @@ import {
   PlatformConfig,
   Service,
 } from 'homebridge';
-import { AbodeEvents, DEVICE_UPDATED, SOCKET_CONNECTED, SOCKET_DISCONNECTED } from './abode/events';
+// import { AbodeEvents, DEVICE_UPDATED, SOCKET_CONNECTED, SOCKET_DISCONNECTED } from './abode/events';
+import { AbodeEvents, SOCKET_CONNECTED, SOCKET_DISCONNECTED } from './abode/events';
+
 import {
   abodeInit,
   getDevices,
   AbodeSwitchStatusInt,
   AbodeDimmerStatusInt,
-  isDeviceTypeSwitch,
   AbodeSwitchDevice,
   AbodeSwitchStatus,
   AbodeDimmerDevice,
-  isDeviceTypeDimmer,
 } from './abode/api';
 import { PLATFORM_NAME, PLUGIN_NAME } from './constants';
 
-import {
-  AbodeSwitchAccessory,
-  AbodeDimmerAccessory,
-} from './accessory';
+import { AbodeDimmerAccessory } from './dimmerAccessory';
+
+import { AbodeSwitchAccessory } from './switchAccessory';
 
 interface Config extends PlatformConfig {
   readonly email?: string;
@@ -37,6 +36,7 @@ export class AbodeLightsPlatform implements DynamicPlatformPlugin {
   public readonly Characteristic: typeof Characteristic = this.api.hap.Characteristic;
 
   public readonly accessories: PlatformAccessory[] = [];
+  public readonly cachedAccessories: PlatformAccessory[] = [];
 
   private socketConnected = false;
 
@@ -63,7 +63,7 @@ export class AbodeLightsPlatform implements DynamicPlatformPlugin {
       }
 
       await this.discoverDevices();
-      await this.updateStatus();
+      // await this.updateStatus();
 
       AbodeEvents.on(SOCKET_CONNECTED, () => {
         this.socketConnected = true;
@@ -78,152 +78,222 @@ export class AbodeLightsPlatform implements DynamicPlatformPlugin {
           }
         }, 30000);
       });
-      AbodeEvents.on(DEVICE_UPDATED, this.handleDeviceUpdated.bind(this));
+      // AbodeEvents.on(DEVICE_UPDATED, this.handleDeviceUpdated.bind(this));
     });
   }
 
+  /**
+ * This function is invoked when homebridge restores cached accessories from disk at startup.
+ * It should be used to setup event handlers for characteristics and update respective values.
+ */
   configureAccessory(accessory: PlatformAccessory) {
     this.log.info('Loading accessory from cache:', accessory.displayName);
 
-    this.accessories.push(accessory);
+    const service = accessory.getService(this.Service.AccessoryInformation);
+    service!.removeCharacteristic(service!.getCharacteristic(this.Characteristic.FirmwareRevision));
+
+    this.cachedAccessories.push(accessory);
+    // this.accessories.push(accessory);
   }
 
   async discoverDevices() {
     try {
       const devices = await getDevices();
 
+      // for each device
+      //   is it a type we can add?
+      //   does it already exist in homekit?
+
       for (const device of devices) {
-        if (isDeviceTypeSwitch(device)) {
+        // We only support certain devices.
+        switch (device.type_tag) {
+          case "device_type.dimmer_meter":
+          case "device_type.power_switch_sensor":
+          case "device_type.light_bulb":
+          case "device_type.hue":
+            // start handling the device
 
-          const uuid = this.api.hap.uuid.generate(device.id);
+            this.handleDevice(device)
+            break;
 
-          const existingAccessory = this.accessories.find((accessory) => accessory.UUID === uuid);
-
-          if (existingAccessory) {
-            if (device) {
-              this.log.info('Restoring existing accessory from cache:', existingAccessory.displayName);
-
-              existingAccessory.context.device = {
-                id: device.id,
-                name: device.name,
-              };
-              new AbodeSwitchAccessory(this, existingAccessory);
-
-              this.api.updatePlatformAccessories([existingAccessory]);
-            } else if (!device) {
-              this.api.unregisterPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [existingAccessory]);
-              this.log.info('Removing existing accessory from cache:', existingAccessory.displayName);
-            }
-          } else {
-            this.log.info('Adding new accessory:', device.name);
-
-            const accessory = new this.api.platformAccessory(device.name, uuid);
-            accessory.context.device = {
-              id: device.id,
-              name: device.name,
-            };
-
-            new AbodeSwitchAccessory(this, accessory);
-
-            this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
-            this.accessories.push(accessory);
-          }
-        } else if (isDeviceTypeDimmer(device)) {
-
-          const uuid = this.api.hap.uuid.generate(device.id);
-
-          const existingAccessory = this.accessories.find((accessory) => accessory.UUID === uuid);
-
-          if (existingAccessory) {
-            if (device) {
-              this.log.info('Restoring existing accessory from cache:', existingAccessory.displayName);
-
-              existingAccessory.context.device = {
-                id: device.id,
-                name: device.name,
-              };
-              new AbodeDimmerAccessory(this, existingAccessory);
-
-              this.api.updatePlatformAccessories([existingAccessory]);
-            } else if (!device) {
-              this.api.unregisterPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [existingAccessory]);
-              this.log.info('Removing existing accessory from cache:', existingAccessory.displayName);
-            }
-          } else {
-            this.log.info('Adding new accessory:', device.name);
-
-            const accessory = new this.api.platformAccessory(device.name, uuid);
-            accessory.context.device = {
-              id: device.id,
-              name: device.name,
-            };
-
-            new AbodeDimmerAccessory(this, accessory);
-
-            this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
-            this.accessories.push(accessory);
-          }
-        } else {
-          continue;
+          // Other device types that we don't support
+          default:
+            continue;
         }
       }
+
+      //   if (isDeviceTypeSwitch(device)) {
+
+      //     const uuid = this.api.hap.uuid.generate(device.id);
+
+      //     const existingAccessory = this.accessories.find((accessory) => accessory.UUID === uuid);
+
+      //     if (existingAccessory) {
+      //       if (device) {
+      //         this.log.info('Restoring existing accessory from cache:', existingAccessory.displayName);
+
+      //         existingAccessory.context.device = {
+      //           id: device.id,
+      //           name: device.name,
+      //         };
+      //         new AbodeSwitchAccessory(this, existingAccessory);
+
+      //         this.api.updatePlatformAccessories([existingAccessory]);
+      //       } else if (!device) {
+      //         this.api.unregisterPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [existingAccessory]);
+      //         this.log.info('Removing existing accessory from cache:', existingAccessory.displayName);
+      //       }
+      //     } else {
+      //       this.log.info('Adding new accessory:', device.name);
+
+      //       const accessory = new this.api.platformAccessory(device.name, uuid);
+      //       accessory.context.device = {
+      //         id: device.id,
+      //         name: device.name,
+      //       };
+
+      //       new AbodeSwitchAccessory(this, accessory);
+
+      //       this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
+      //       this.accessories.push(accessory);
+      //     }
+      //   } else if (isDeviceTypeDimmer(device)) {
+
+      //     const uuid = this.api.hap.uuid.generate(device.id);
+
+      //     const existingAccessory = this.accessories.find((accessory) => accessory.UUID === uuid);
+
+      //     if (existingAccessory) {
+      //       if (device) {
+      //         this.log.info('Restoring existing accessory from cache:', existingAccessory.displayName);
+
+      //         existingAccessory.context.device = {
+      //           id: device.id,
+      //           name: device.name,
+      //         };
+      //         new AbodeDimmerAccessory(this, existingAccessory);
+
+      //         this.api.updatePlatformAccessories([existingAccessory]);
+      //       } else if (!device) {
+      //         this.api.unregisterPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [existingAccessory]);
+      //         this.log.info('Removing existing accessory from cache:', existingAccessory.displayName);
+      //       }
+      //     } else {
+      //       this.log.info('Adding new accessory:', device.name);
+
+      //       const accessory = new this.api.platformAccessory(device.name, uuid);
+      //       accessory.context.device = {
+      //         id: device.id,
+      //         name: device.name,
+      //       };
+
+      //       new AbodeDimmerAccessory(this, accessory);
+
+      //       this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
+      //       this.accessories.push(accessory);
+      //     }
+      //   } else {
+      //     continue;
+      //   }
+      // }
     } catch (error: any) {
       this.log.error('Failed to discoverDevices', error.message);
     }
   }
 
-  async updateStatus() {
-    try {
-      const devices = await getDevices();
+  // async updateStatus() {
+  //   try {
+  //     const devices = await getDevices();
 
-      for (const accessory of this.accessories) {
-        const id = accessory.context.device.id;
-        const device = devices.find((d) => d.id === id);
-        if (!device) {
-          this.log.warn('updateStatus did not find device', id);
-          continue;
-        }
+  //     for (const accessory of this.accessories) {
+  //       const id = accessory.context.device.id;
+  //       const device = devices.find((d) => d.id === id);
+  //       if (!device) {
+  //         this.log.warn('updateStatus did not find device', id);
+  //         continue;
+  //       }
 
-        if (isDeviceTypeSwitch(device)) {
-          const service = accessory.getService(this.Service.Switch);
-          if (!service) {
-            this.log.info('updateStatus did not find switch service for device', id);
-            continue;
-          }
+  //       if (isDeviceTypeSwitch(device)) {
+  //         const service = accessory.getService(this.Service.Switch);
+  //         if (!service) {
+  //           this.log.info('updateStatus did not find switch service for device', id);
+  //           continue;
+  //         }
 
-          const currentState = this.convertAbodeSwitchStatusToSwitchCurrentState(device);
+  //         const currentState = this.convertAbodeSwitchStatusToSwitchCurrentState(device);
 
-          service.getCharacteristic(this.Characteristic.On).updateValue(currentState);
-        } else if (isDeviceTypeDimmer(device)) {
-          const service = accessory.getService(this.Service.Lightbulb);
-          if (!service) {
-            this.log.info('updateStatus did not find dimmer service for device', id);
-            continue;
-          }
+  //         service.getCharacteristic(this.Characteristic.On).updateValue(currentState);
+  //       } else if (isDeviceTypeDimmer(device)) {
+  //         const service = accessory.getService(this.Service.Lightbulb);
+  //         if (!service) {
+  //           this.log.info('updateStatus did not find dimmer service for device', id);
+  //           continue;
+  //         }
 
-          const currentState = this.convertAbodeDimmerStatusToDimmerCurrentState(device);
-          const currentBrightness = device.statusEx;
+  //         const currentState = this.convertAbodeDimmerStatusToDimmerCurrentState(device);
+  //         const currentBrightness = device.brightness;
 
-          service.getCharacteristic(this.Characteristic.On).updateValue(currentState);
-          service.getCharacteristic(this.Characteristic.Brightness).updateValue(currentBrightness);
-        } else {
-          this.log.info('updateStatus did not find device with switch type', id);
-          continue;
-        }
-      }
-    } catch (error: any) {
-      this.log.error('Failed to updateStatus', error.message);
-    }
+  //         service.getCharacteristic(this.Characteristic.On).updateValue(currentState);
+  //         service.getCharacteristic(this.Characteristic.Brightness).updateValue(currentBrightness);
+  //       } else {
+  //         this.log.info('updateStatus did not find device with switch type', id);
+  //         continue;
+  //       }
+  //     }
+  //   } catch (error: any) {
+  //     this.log.error('Failed to updateStatus', error.message);
+  //   }
+  // }
+
+  getUuid(device: any) {
+    return this.api.hap.uuid.generate(device.id);
   }
 
-  handleDeviceUpdated(deviceId: string) {
-    this.log.debug('handleDeviceUpdated', deviceId);
-
-    const device = this.accessories.find((a) => a.context.device.id === deviceId);
-    if (device) {
-      this.updateStatus();
-    }
+  findCachedAccessory(device: any) {
+    return this.cachedAccessories.find(accessory => accessory.UUID === this.getUuid(device));
   }
+
+  registerNewAccessory(device: any, name: string) {
+    const accessory = new this.api.platformAccessory(name, this.getUuid(device));
+    this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
+    return accessory;
+  }
+
+  hookAccessory(accessory: any, device: any) {
+    // Need to determine the type of device, and register it approprately
+
+    switch (device.type_tag) {
+      // A Dimmer switch
+      case "device_type.dimmer_meter":
+        new AbodeDimmerAccessory(this, accessory);
+        this.accessories.push(accessory);
+        break;
+      // A switch
+      case "device_type.power_switch_sensor":
+        new AbodeSwitchAccessory(this, accessory);
+        this.accessories.push(accessory)
+        break;
+      // An Abode light bulb
+      case "device_type.libht_bulb":
+        break;
+      //  Other wifi connected bulbs
+      case "device_type.hue":
+        break;
+      // Other device types
+      default:
+        break;
+    }
+
+  }
+
+  // handleDeviceUpdated(deviceId: string) {
+  //   this.log.debug('handleDeviceUpdated', deviceId);
+
+  //   const device = this.accessories.find((a) => a.context.device.id === deviceId);
+  //   if (device) {
+  //     this.updateStatus();
+  //   }
+  // }
 
   convertAbodeSwitchStatusToSwitchCurrentState(device: AbodeSwitchDevice): CharacteristicValue {
     switch (device.status) {
@@ -257,5 +327,20 @@ export class AbodeLightsPlatform implements DynamicPlatformPlugin {
     } else {
       return AbodeDimmerStatusInt.Off;
     }
+  }
+
+  handleDevice(device: any) {
+    // Deterine if the light is already registered
+    let accessory = this.findCachedAccessory(device)
+
+    if (accessory) {
+      this.log.info('Restoring existing accessory from cache:', accessory.displayName);
+    } else {
+      this.log.info('Adding new accessory:', device.name);
+      accessory = this.registerNewAccessory(device, device.name);
+    }
+
+    this.log.debug("Hooking device to accessory", device.name);
+    this.hookAccessory(accessory, device);
   }
 }
