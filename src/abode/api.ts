@@ -3,6 +3,8 @@ import { default as http } from 'axios';
 import { openSocket } from './events';
 import { v4 as uuid } from 'uuid';
 
+import { AbodeDevice, AbodeDeviceType } from '../device';
+
 export let log: Logger;
 
 const credentials = {
@@ -189,18 +191,19 @@ const getSession = async (): Promise<string> => {
   return sessionResponse.data.id;
 };
 
-export const enum AbodeDeviceType {
-  Switch = 'device_type.power_switch_sensor',
-  Dimmer = 'device_type.dimmer_meter',
-  LightBulb = 'device_type.light_bulb',
-  Hue = "device_type.hue",
-}
+// export const enum AbodeDeviceType {
+//   Switch = 'device_type.power_switch_sensor',
+//   Dimmer = 'device_type.dimmer_meter',
+//   LightBulb = 'device_type.light_bulb',
+//   Hue = "device_type.hue",
+// }
 
-export interface AbodeDevice {
-  readonly id: string;
-  readonly type_tag: AbodeDeviceType;
-  readonly name: string;
-}
+// export interface AbodeDevice {
+//   readonly id: string;
+//   readonly type_tag: AbodeDeviceType;
+//   readonly name: string;
+//   readonly version: string;
+// }
 
 export const enum AbodeSwitchStatus {
   On = 'On',
@@ -230,7 +233,7 @@ export interface AbodeSwitchDevice extends AbodeDevice {
 export interface AbodeDimmerDevice extends AbodeDevice {
   readonly type_tag: AbodeDeviceType.Dimmer;
   readonly status: AbodeSwitchStatus;
-  readonly brightness: number;
+  readonly statusEx: number;
 }
 
 export const getDevices = async (): Promise<AbodeDevice[]> => {
@@ -267,6 +270,22 @@ export const controlDimmerBrightness = async (id: string, level: number): Promis
   const response = await http.put(`/api/v1/control/light/${id}`, { level });
   return response.data;
 };
+
+export const sendRequest = async (url: string, data: any): Promise<AbodeControlSwitchResponse> => {
+  log.debug('url = ', url)
+  log.debug('data = ', data)
+  try {
+    const response = await http.put(url, data)
+    if (response.status !== 200) {
+      log.debug('sendRequest status was: ', response.status)
+    }
+    return response.data;
+  }
+  catch (error: any) {
+    log.error('Catch an error in sendRequest: ', error.message)
+    throw new Error('Catch an error in sendRequest'.concat(error.message))
+  }
+}
 
 export const isDeviceTypeSwitch = (device: AbodeDevice): device is AbodeSwitchDevice => {
   return device.type_tag === AbodeDeviceType.Switch;
