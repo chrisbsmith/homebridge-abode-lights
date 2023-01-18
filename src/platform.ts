@@ -208,7 +208,7 @@ export class AbodeLightsPlatform implements DynamicPlatformPlugin {
         this.accessories.push(accessory)
         break;
       // An Abode light bulb
-      case "device_type.libht_bulb":
+      case "device_type.light_bulb":
         this.log.debug('Found an Abode lightbulb');
         new AbodeBulbAccessory(this, accessory, device)
         this.accessories.push(accessory)

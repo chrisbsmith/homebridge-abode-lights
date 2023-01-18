@@ -27,28 +27,24 @@ export class AbodeBulbAccessory {
       this.setSoftwareCharacteristics();
       this.bindFunctions();
     }, (error) => this.handleError(error));
-
-    // this.accessory
-    //   .getService(this.platform.Service.AccessoryInformation)!
-    //   .setCharacteristic(this.platform.Characteristic.Manufacturer, 'abode')
-    //   .setCharacteristic(this.platform.Characteristic.Model, 'Dimmer')
-    //   .setCharacteristic(this.platform.Characteristic.SerialNumber, accessory.context.device.id)
-    //   .setCharacteristic(this.platform.Characteristic.AppMatchingIdentifier, 'com.abode.abode');
-
-
   }
 
   setHardwareCharacteristics() {
+    this.platform.log.debug('Setting the hardware characteristics of a bulb')
     this.accessory
       .getService(this.platform.Service.AccessoryInformation)!
       .setCharacteristic(this.platform.Characteristic.Manufacturer, 'abode')
       .setCharacteristic(this.platform.Characteristic.Model, this.bulb.getProductName())
-      .setCharacteristic(this.platform.Characteristic.SerialNumber, this.bulb.getProcutId())
-      .setCharacteristic(this.platform.Characteristic.AppMatchingIdentifier, 'com.abode.abode');;
+      .setCharacteristic(this.platform.Characteristic.SerialNumber, this.bulb.getProductId())
+      .setCharacteristic(this.platform.Characteristic.AppMatchingIdentifier, 'com.abode.abode');
+
+    this.service
+      .setCharacteristic(this.platform.Characteristic.Hue, this.bulb.getHue())
+      .setCharacteristic(this.platform.Characteristic.Saturation, this.bulb.getSaturation());
   }
 
   setSoftwareCharacteristics() {
-    this.service.setCharacteristic(this.platform.Characteristic.Name, this.bulb.getName());
+    this.service.setCharacteristic(this.platform.Characteristic.Name, this.bulb.getProductName());
   }
 
   bindFunctions() {
@@ -61,10 +57,16 @@ export class AbodeBulbAccessory {
       .getCharacteristic(this.platform.Characteristic.Brightness)
       .onSet(this.setBrightness.bind(this));
     // .on(CharacteristicEventTypes.SET, this.setDimmerBrightness.bind(this));
+
+    this.service.getCharacteristic(this.platform.Characteristic.Hue)
+      .onSet(this.setHue.bind(this));
+
+    this.service.getCharacteristic(this.platform.Characteristic.Saturation)
+      .onSet(this.setSaturation.bind(this));
   }
 
   handleError(err) {
-    this.platform.log.warn('Bulb ' + this.bulb.getName() + ' throughs error', err);
+    this.platform.log.warn('Bulb ' + this.bulb.getProductName() + ' throughs error', err);
     // if you need to return an error to show the device as "Not Responding" in the Home app:
     // throw new this.platform.api.hap.HapStatusError(this.platform.api.hap.HAPStatus.SERVICE_COMMUNICATION_FAILURE);
   }
@@ -88,6 +90,6 @@ export class AbodeBulbAccessory {
   setValue(name, func, obj, value) {
     // this.resetWatcher();
     func.call(obj, value);
-    this.platform.log.debug(`Set Characteristic ${name} -> `, value);
+    this.platform.log.debug(`Set Characteristic ${name} ->  `, value, ` for bulb with uuid of`, obj.getProductUuid());
   }
 }

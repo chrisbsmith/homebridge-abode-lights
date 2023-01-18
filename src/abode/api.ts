@@ -1,5 +1,5 @@
 import { Logger } from 'homebridge';
-import { default as http } from 'axios';
+import http from 'axios';
 import { openSocket } from './events';
 import { v4 as uuid } from 'uuid';
 
@@ -57,7 +57,16 @@ export const ORIGIN = 'https://my.goabode.com/';
 
 export let USER_AGENT = USER_AGENT_BASE;
 
-http.interceptors.request.use(
+
+export const api = http.create({
+  baseURL: API_BASE_URL,
+  headers: {
+    'User-Agent': USER_AGENT,
+
+  }
+})
+
+api.interceptors.request.use(
   (config) => {
     if (!config.url) {
       throw new Error('Missing URL.');
@@ -71,7 +80,6 @@ http.interceptors.request.use(
       config.headers = {};
     }
 
-    config.headers['User-Agent'] = USER_AGENT;
     config.headers['Cookie'] = getAuthCookie();
 
     if (isAuthPath) {
@@ -137,7 +145,7 @@ const performAuth = async (): Promise<void> => {
 
     log.info('Signing into Abode account');
 
-    const authResponse = await http.post('/api/auth2/login', {
+    const authResponse = await api.post('/api/auth2/login', {
       id: credentials.email,
       password: credentials.password,
       uuid: DEVICE_UUID,
@@ -170,7 +178,7 @@ const performAuth = async (): Promise<void> => {
 };
 
 const getOAuthToken = async (): Promise<string> => {
-  const claimsResponse = await http.get('/api/auth2/claims');
+  const claimsResponse = await api.get('/api/auth2/claims');
   if (claimsResponse.status !== 200) {
     throw new Error('Received non-200 response.');
   }
@@ -184,7 +192,7 @@ const getOAuthToken = async (): Promise<string> => {
 };
 
 const getSession = async (): Promise<string> => {
-  const sessionResponse = await http.get('/api/v1/session');
+  const sessionResponse = await api.get('/api/v1/session');
   if (sessionResponse.status !== 200) {
     throw new Error('Received non-200 response.');
   }
@@ -238,7 +246,7 @@ export interface AbodeDimmerDevice extends AbodeDevice {
 
 export const getDevices = async (): Promise<AbodeDevice[]> => {
   log.debug('getDevices');
-  const response = await http.get('/api/v1/devices');
+  const response = await api.get('/api/v1/devices');
   return response.data;
 };
 
@@ -257,25 +265,32 @@ export interface AbodeControlDimmerBrightnessResponse {
 }
 
 export const controlSwitch = async (id: string, status: AbodeSwitchStatusInt): Promise<AbodeControlSwitchResponse> => {
-  const response = await http.put(`/api/v1/control/power_switch/${id}`, { status });
+  const response = await api.put(`/api/v1/control/power_switch/${id}`, { status });
   return response.data;
 };
 
 export const controlDimmer = async (id: string, status: AbodeDimmerStatusInt): Promise<AbodeControlDimmerResponse> => {
-  const response = await http.put(`/api/v1/control/light/${id}`, { status });
+  const response = await api.put(`/api/v1/control/light/${id}`, { status });
   return response.data;
 };
 
 export const controlDimmerBrightness = async (id: string, level: number): Promise<AbodeControlDimmerBrightnessResponse> => {
-  const response = await http.put(`/api/v1/control/light/${id}`, { level });
+  const response = await api.put(`/api/v1/control/light/${id}`, { level });
   return response.data;
 };
+
+// function(method, url, data) {
+//   axios({
+//     method: method,
+//     url: url,
+//     data: data
+//   })
 
 export const sendRequest = async (url: string, data: any): Promise<AbodeControlSwitchResponse> => {
   log.debug('url = ', url)
   log.debug('data = ', data)
   try {
-    const response = await http.put(url, data)
+    const response = await api.put(url, data)
     if (response.status !== 200) {
       log.debug('sendRequest status was: ', response.status)
     }

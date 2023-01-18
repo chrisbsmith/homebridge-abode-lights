@@ -1,4 +1,7 @@
-import { AbodeSwitchDevice, AbodeSwitchStatusInt, sendRequest } from "./abode/api";
+import { AbodeSwitchDevice, AbodeSwitchStatusInt } from "./abode/api";
+
+import { updateSwitch } from "./light.api"
+
 
 export default class Switch {
   private States = {
@@ -6,7 +9,7 @@ export default class Switch {
     name: '',
   }
 
-  private baseUrl = `/api/v1/control/power_switch/`;
+  // private baseUrl = `/api/v1/control/power_switch/`;
 
   constructor(private readonly light: AbodeSwitchDevice) { }
 
@@ -14,9 +17,9 @@ export default class Switch {
 
   private async setPower(status: number) {
     this.States.power = status;
-    console.log('setpower status = ', status);
-    const response = await sendRequest(this.baseUrl.concat(this.light.id), { status });
-    console.log('sendRequest response: ', response)
+    console.log('### switch: setpower status = ', status);
+    // const response = await sendRequest(this.baseUrl.concat(this.light.id), { status });
+    updateSwitch(this.light.id, { status }).catch(error => console.log('Error: ', error))
   }
 
   async setOn(status: AbodeSwitchStatusInt) {

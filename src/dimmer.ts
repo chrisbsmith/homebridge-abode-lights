@@ -1,4 +1,6 @@
-import { AbodeDimmerDevice, sendRequest } from "./abode/api";
+import { AbodeDimmerDevice } from "./abode/api";
+
+import { updateDimmer } from "./light.api"
 
 export default class Dimmer {
   private States = {
@@ -16,15 +18,13 @@ export default class Dimmer {
   private async setPower(status: any) {
     this.States.power = status;
     console.log('setpower status = ', status);
-    const response = await sendRequest(this.baseUrl.concat(this.light.id), { status });
-    console.log('sendRequest response: ', response)
+    updateDimmer(this.light.id, { status }).catch(error => console.log('Error: ', error))
   }
 
   private async setBrightnessLevel(level: any) {
     this.States.brightness = level;
     console.log('setBrightnessLevel level = ', level);
-    const response = await sendRequest(this.baseUrl.concat(this.light.id), { level });
-    console.log('sendRequest response: ', response)
+    updateDimmer(this.light.id, { level }).catch(error => console.log('Error: ', error))
   }
 
   // When turning the dimmer on, set the birghtness to the last known brightness state.

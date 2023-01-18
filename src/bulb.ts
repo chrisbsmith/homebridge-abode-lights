@@ -8,32 +8,38 @@ export default class Bulb {
   }
   constructor(private readonly light: any) { }
 
-  public async Init(callback, error) {
+  public async Init(callback) {
     this.updateStates(() => {
       callback();
-    }, err => error(err));
+    });
   }
 
   public getProductId() {
     return this.light.id;
   }
 
-  public getName() {
+  public getProductUuid() {
+    return this.light.uuid;
+  }
+
+  public getProductName() {
     return this.light.name;
   }
 
   async updateStates(callback) {
-    this.getStates((state) => {
-      if (state !== null) {
-        this.States = state;
-      } else {
-        this.setPower(0);
-      }
-      callback();
-    }, () => {
-      this.setPower(0);
-      callback();
-    });
+    console.log('updating bulb states')
+    callback();
+    // this.getStates((state) => {
+    //   if (state !== null) {
+    //     this.States = state;
+    //   } else {
+    //     this.setPower(0);
+    //   }
+    //   callback();
+    // }, () => {
+    //   this.setPower(0);
+    //   callback();
+    // });
   }
 
   getStates(callback, errorFallback) {
@@ -45,26 +51,47 @@ export default class Bulb {
     });
   }
 
-  private setPower(value) {
-    this.States.power = value;
+  // private setPower(value) {
+  //   this.States.power = value;
+  // }
+
+  update(state) {
+    this.light.color(state.color.hue, state.color.saturation, state.color.brightness);
   }
 
   async setOn(value) {
     this.States.power = value;
 
     if (this.States.power > 0) {
-      this.light.on();
+      console.log('Setting the power on')
     } else {
-      this.light.off();
+      console.log('Setting the power off')
     }
-  }
-
-  update(state) {
-    this.light.color(state.color.hue, state.color.saturation, state.color.brightness);
   }
 
   async setBrightness(value) {
     this.States.color.brightness = value;
-    this.update(this.States);
+    // this.update(this.States);
   }
+
+  async setHue(value) {
+    this.States.color.hue = value;
+    console.log('Setting Hue to ', value, ' for bulb ', this.getProductUuid());
+    // this.update(this.States, this.Settings.ColorDuration);
+  }
+
+  async setSaturation(value) {
+    this.States.color.saturation = value;
+    console.log('Setting saturation to ', value, ' for bulb ', this.getProductUuid());
+    // this.update(this.States, this.Settings.ColorDuration);
+  }
+
+  getHue() {
+    return this.States.color.hue;
+  }
+
+  getSaturation() {
+    return this.States.color.saturation;
+  }
+
 }
