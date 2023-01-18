@@ -39,7 +39,7 @@ export class AbodeSwitchAccessory {
     this.service.getCharacteristic(this.platform.Characteristic.On)
       .on(CharacteristicEventTypes.SET, this.setSwitchState.bind(this));
 
-    this.switch.Init();
+    this.switch.Init(light.status, light.name);
   }
 
 
@@ -50,7 +50,6 @@ export class AbodeSwitchAccessory {
       const status = this.platform.convertSwitchTargetStateToAbodeSwitchStatusInt(value);
       this.platform.log.debug('Calling switch.id: ', this.switch.getId())
       this.platform.log.debug('Switching for switch: ', this.switch.getId())
-      // await controlSwitch(this.switch.getId(), status);
       await this.switch.setOn(status);
       callback();
     } catch (error: any) {

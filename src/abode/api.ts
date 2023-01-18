@@ -62,7 +62,6 @@ export const api = http.create({
   baseURL: API_BASE_URL,
   headers: {
     'User-Agent': USER_AGENT,
-
   }
 })
 
@@ -112,6 +111,22 @@ api.interceptors.request.use(
   },
 );
 
+api.interceptors.response.use(function (response) {
+  // Any status code that lie within the range of 2xx cause this function to trigger
+  // Do something with response data
+  return response;
+}, function (error) {
+  // Any status codes that falls outside the range of 2xx cause this function to trigger
+
+  // Error code 2191 is "We are unable to communicate with your gateway/camera.  Please make sure it has an active internet connection.  If the problem persists, please reboot your gateway/camera or contact support for assistance."
+  // It's safe to just gobble this one up and keep moving
+  if (error.response.data.errorCode === '2191') {
+
+  }
+  log.debug('Caught the error in the interceptor: ', error)
+  // return Promise.reject(error);
+});
+
 export const renewSession = async (): Promise<void> => {
   try {
     log.debug('Getting Abode session');
@@ -134,6 +149,8 @@ export const renewSession = async (): Promise<void> => {
     }
   }
 };
+
+
 
 const performAuth = async (): Promise<void> => {
   try {
@@ -262,44 +279,6 @@ export interface AbodeControlDimmerResponse {
 export interface AbodeControlDimmerBrightnessResponse {
   readonly id: string;
   readonly level: number;
-}
-
-export const controlSwitch = async (id: string, status: AbodeSwitchStatusInt): Promise<AbodeControlSwitchResponse> => {
-  const response = await api.put(`/api/v1/control/power_switch/${id}`, { status });
-  return response.data;
-};
-
-export const controlDimmer = async (id: string, status: AbodeDimmerStatusInt): Promise<AbodeControlDimmerResponse> => {
-  const response = await api.put(`/api/v1/control/light/${id}`, { status });
-  return response.data;
-};
-
-export const controlDimmerBrightness = async (id: string, level: number): Promise<AbodeControlDimmerBrightnessResponse> => {
-  const response = await api.put(`/api/v1/control/light/${id}`, { level });
-  return response.data;
-};
-
-// function(method, url, data) {
-//   axios({
-//     method: method,
-//     url: url,
-//     data: data
-//   })
-
-export const sendRequest = async (url: string, data: any): Promise<AbodeControlSwitchResponse> => {
-  log.debug('url = ', url)
-  log.debug('data = ', data)
-  try {
-    const response = await api.put(url, data)
-    if (response.status !== 200) {
-      log.debug('sendRequest status was: ', response.status)
-    }
-    return response.data;
-  }
-  catch (error: any) {
-    log.error('Catch an error in sendRequest: ', error.message)
-    throw new Error('Catch an error in sendRequest'.concat(error.message))
-  }
 }
 
 export const isDeviceTypeSwitch = (device: AbodeDevice): device is AbodeSwitchDevice => {

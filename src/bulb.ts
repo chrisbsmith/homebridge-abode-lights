@@ -1,4 +1,4 @@
-// import { sendRequest } from "./abode/api";
+import { setBulbPower, updateBulb } from './light.api'
 
 export default class Bulb {
   private States = {
@@ -62,28 +62,52 @@ export default class Bulb {
   async setOn(value) {
     this.States.power = value;
 
-    if (this.States.power > 0) {
-      console.log('Setting the power on')
+    let action = ''
+    if (this.States.power) {
+      action = "on";
     } else {
-      console.log('Setting the power off')
+      action = "off";
     }
+    console.log('Setting the power: ', { action });
+    setBulbPower(this.getProductUuid(), { action }).catch((error) => this.handleError(error));
   }
 
   async setBrightness(value) {
     this.States.color.brightness = value;
+    const data = {
+      action: 'setpercent',
+      percentage: value
+    }
+    console.log('### Setting bulb brightness: ', data);
+    updateBulb(this.getProductUuid(), data).catch((error) => this.handleError(error));
     // this.update(this.States);
   }
 
+  // { "action": "setcolor", "hue": 57, "saturation": 100 }
   async setHue(value) {
     this.States.color.hue = value;
     console.log('Setting Hue to ', value, ' for bulb ', this.getProductUuid());
-    // this.update(this.States, this.Settings.ColorDuration);
+
+    const data = {
+      action: 'setcolor',
+      hue: value,
+      saturation: this.getSaturation(),
+    }
+    console.log('### Setting bulb hue: ', data);
+    updateBulb(this.getProductUuid(), data).catch((error) => this.handleError(error));
   }
 
   async setSaturation(value) {
     this.States.color.saturation = value;
     console.log('Setting saturation to ', value, ' for bulb ', this.getProductUuid());
-    // this.update(this.States, this.Settings.ColorDuration);
+
+    const data = {
+      action: 'setcolor',
+      hue: this.getHue(),
+      saturation: value,
+    }
+    console.log('### Setting bulb saturation: ', data);
+    updateBulb(this.getProductUuid(), data).catch((error) => this.handleError(error));
   }
 
   getHue() {
@@ -92,6 +116,14 @@ export default class Bulb {
 
   getSaturation() {
     return this.States.color.saturation;
+  }
+
+  handleError(err) {
+    console.log('Bulb ' + this.getProductName() + ' throws error', err);
+    console.log(err.response.data.errorCode)
+
+    // if you need to return an error to show the device as "Not Responding" in the Home app:
+    // throw new this.platform.api.hap.HapStatusError(this.platform.api.hap.HAPStatus.SERVICE_COMMUNICATION_FAILURE);
   }
 
 }

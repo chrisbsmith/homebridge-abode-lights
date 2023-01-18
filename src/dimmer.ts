@@ -13,7 +13,11 @@ export default class Dimmer {
 
   constructor(private readonly light: AbodeDimmerDevice) { }
 
-  public async Init() { }
+  public async Init(power: number, brightness: number, name: string) {
+    this.States.power = power;
+    this.States.brightness = brightness;
+    this.States.name = name;
+  }
 
   private async setPower(status: any) {
     this.States.power = status;

@@ -13,12 +13,14 @@ export default class Switch {
 
   constructor(private readonly light: AbodeSwitchDevice) { }
 
-  public async Init() { }
+  public async Init(power: number, name: string) {
+    this.States.power = power;
+    this.States.name = name;
+  }
 
   private async setPower(status: number) {
     this.States.power = status;
     console.log('### switch: setpower status = ', status);
-    // const response = await sendRequest(this.baseUrl.concat(this.light.id), { status });
     updateSwitch(this.light.id, { status }).catch(error => console.log('Error: ', error))
   }
 

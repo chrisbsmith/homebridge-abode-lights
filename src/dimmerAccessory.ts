@@ -9,8 +9,6 @@ import {
 import { AbodeLightsPlatform } from './platform';
 import {
   AbodeDimmerDevice,
-  // controlDimmer,
-  // controlDimmerBrightness,
 } from './abode/api';
 import Dimmer from './dimmer';
 
@@ -46,7 +44,7 @@ export class AbodeDimmerAccessory {
     this.service.getCharacteristic(this.platform.Characteristic.FirmwareRevision)
       .onGet(this.handleFirmwareRevisionGet.bind(this));
 
-    this.dimmer.Init();
+    this.dimmer.Init(light.status, light.statusEx, light.name);
   }
 
   async setDimmerState(value: CharacteristicValue, callback: CharacteristicSetCallback) {
