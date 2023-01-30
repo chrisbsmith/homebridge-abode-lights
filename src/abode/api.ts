@@ -5,8 +5,6 @@ import { v4 as uuid } from 'uuid';
 
 import { AbodeDevice } from '../devices/devices';
 
-// import axiosRetry from 'axios-retry';
-
 export let log: Logger;
 
 const credentials = {
