@@ -3,7 +3,9 @@ import http from 'axios';
 import { openSocket } from './events';
 import { v4 as uuid } from 'uuid';
 
-import { AbodeDevice, AbodeDeviceType } from '../device';
+import { AbodeDevice } from '../devices/devices';
+
+// import axiosRetry from 'axios-retry';
 
 export let log: Logger;
 
@@ -57,13 +59,29 @@ export const ORIGIN = 'https://my.goabode.com/';
 
 export let USER_AGENT = USER_AGENT_BASE;
 
-
 export const api = http.create({
   baseURL: API_BASE_URL,
   headers: {
     'User-Agent': USER_AGENT,
-  }
-})
+  },
+});
+
+// axiosRetry(api, {
+//   retries: 3, // number of retries
+//   retryDelay: (retryCount) => {
+//     console.log(`retry attempt: ${retryCount}`);
+//     console.log('api: ', api)
+//     return retryCount * 2000; // time interval between retries
+//   },
+//   retryCondition: (error) => {
+//     // if retry condition is not specified, by default idempotent requests are retried
+//     return error.response?.status === 400;
+//   },
+// });
+
+// const MAX_REQUESTS_COUNT = 5
+// const INTERVAL_MS = 50
+// let PENDING_REQUESTS = 0
 
 api.interceptors.request.use(
   (config) => {
@@ -73,11 +91,10 @@ api.interceptors.request.use(
 
     const isAuthPath = config.url.startsWith('/api/auth2/');
     const isSessionPath = config.url === '/api/v1/session';
+
     config.url = API_BASE_URL + config.url;
 
-    if (!config.headers) {
-      config.headers = {};
-    }
+    config.headers = config.headers ?? {};
 
     config.headers['Cookie'] = getAuthCookie();
 
@@ -111,21 +128,47 @@ api.interceptors.request.use(
   },
 );
 
-api.interceptors.response.use(function (response) {
-  // Any status code that lie within the range of 2xx cause this function to trigger
-  // Do something with response data
-  return response;
-}, function (error) {
-  // Any status codes that falls outside the range of 2xx cause this function to trigger
+api.interceptors.response.use(
+  (response) => {
+    // Any status code that lie within the range of 2xx cause this function to trigger
 
-  // Error code 2191 is "We are unable to communicate with your gateway/camera.  Please make sure it has an active internet connection.  If the problem persists, please reboot your gateway/camera or contact support for assistance."
-  // It's safe to just gobble this one up and keep moving
-  if (error.response.data.errorCode === '2191') {
+    // TODO: Investigate queueing messages for light bulbs
+    // const re = /integration/g
+    // const isIntegrationPath = response.config.url?.search(re) !== -1;
 
-  }
-  log.debug('Caught the error in the interceptor: ', error)
-  // return Promise.reject(error);
-});
+    // if (isIntegrationPath) {
+    //   PENDING_REQUESTS = Math.max(0, PENDING_REQUESTS - 1);
+    //   return Promise.resolve(response);
+    // }
+
+    return response;
+  },
+  (error) => {
+    // Any status codes that falls outside the range of 2xx cause this function to trigger
+
+    // TODO: Investigate queueing messages for light bulbs
+    // const re = /integration/g
+    // const isIntegrationPath = error.response.config.url?.search(re) !== -1;
+    // if (isIntegrationPath) {
+    //   PENDING_REQUESTS = Math.max(0, PENDING_REQUESTS - 1)
+    //   return Promise.reject(error);
+    // }
+
+    // Abode will throw a 2191 error when it is unable to communicate with the gateway or camera. Not sure if this is
+    // a rate limit from Abode's side or something else. However, it doesn't seem to be very harmful and just prevents
+    // users from
+    // Error code 2191 is "We are unable to communicate with your gateway/camera.  Please make sure it has an active internet
+    // connection.If the problem persists, please reboot your gateway / camera or contact support for assistance."
+    // It's safe to just gobble this one up and keep moving
+    if (error.response.data.errorCode === 2191) {
+      log.info('Temporarily unable to communicate with your Abode gateway/camera. Error should clear itself.');
+      log.debug('Failed request: ', error.response);
+      log.info(`return error code = ${error.response.status}`);
+      return;
+    }
+    return Promise.reject(error);
+  },
+);
 
 export const renewSession = async (): Promise<void> => {
   try {
@@ -149,8 +192,6 @@ export const renewSession = async (): Promise<void> => {
     }
   }
 };
-
-
 
 const performAuth = async (): Promise<void> => {
   try {
@@ -216,77 +257,10 @@ const getSession = async (): Promise<string> => {
   return sessionResponse.data.id;
 };
 
-// export const enum AbodeDeviceType {
-//   Switch = 'device_type.power_switch_sensor',
-//   Dimmer = 'device_type.dimmer_meter',
-//   LightBulb = 'device_type.light_bulb',
-//   Hue = "device_type.hue",
-// }
-
-// export interface AbodeDevice {
-//   readonly id: string;
-//   readonly type_tag: AbodeDeviceType;
-//   readonly name: string;
-//   readonly version: string;
-// }
-
-export const enum AbodeSwitchStatus {
-  On = 'On',
-  Off = 'Off',
-}
-
-export const enum AbodeSwitchStatusInt {
-  On = 1,
-  Off = 0,
-}
-
-export const enum AbodeDimmerStatus {
-  On = 'On',
-  Off = 'Off',
-}
-
-export const enum AbodeDimmerStatusInt {
-  On = 1,
-  Off = 0,
-}
-
-export interface AbodeSwitchDevice extends AbodeDevice {
-  readonly type_tag: AbodeDeviceType.Switch;
-  readonly status: AbodeSwitchStatus;
-}
-
-export interface AbodeDimmerDevice extends AbodeDevice {
-  readonly type_tag: AbodeDeviceType.Dimmer;
-  readonly status: AbodeSwitchStatus;
-  readonly statusEx: number;
-}
-
 export const getDevices = async (): Promise<AbodeDevice[]> => {
   log.debug('getDevices');
   const response = await api.get('/api/v1/devices');
   return response.data;
-};
-
-export interface AbodeControlSwitchResponse {
-  readonly id: string;
-  readonly status: AbodeSwitchStatusInt;
-}
-
-export interface AbodeControlDimmerResponse {
-  readonly id: string;
-  readonly status: AbodeDimmerStatusInt;
-}
-export interface AbodeControlDimmerBrightnessResponse {
-  readonly id: string;
-  readonly level: number;
-}
-
-export const isDeviceTypeSwitch = (device: AbodeDevice): device is AbodeSwitchDevice => {
-  return device.type_tag === AbodeDeviceType.Switch;
-};
-
-export const isDeviceTypeDimmer = (device: AbodeDevice): device is AbodeDimmerDevice => {
-  return device.type_tag === AbodeDeviceType.Dimmer;
 };
 
 export const enum AbodeEventType {

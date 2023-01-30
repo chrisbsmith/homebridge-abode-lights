@@ -9,26 +9,24 @@ import {
   Service,
 } from 'homebridge';
 import { AbodeEvents, DEVICE_UPDATED, SOCKET_CONNECTED, SOCKET_DISCONNECTED } from './abode/events';
-// import { AbodeEvents, SOCKET_CONNECTED, SOCKET_DISCONNECTED } from './abode/events';
+import { convertKelvinMireds } from './utils/colorFunctions';
+
+import { abodeInit } from './abode/api';
 
 import {
-  abodeInit,
-  getDevices,
-  AbodeSwitchStatusInt,
-  AbodeDimmerStatusInt,
-  AbodeSwitchDevice,
-  AbodeSwitchStatus,
+  AbodeDevice,
   AbodeDimmerDevice,
-  isDeviceTypeDimmer,
-} from './abode/api';
-
-import { AbodeDevice } from './device';
+  AbodeSwitchDevice,
+  AbodeLightBulbDevice,
+  getLastUpdatedDevice,
+} from './devices/devices';
 import { PLATFORM_NAME, PLUGIN_NAME } from './constants';
 
-import { AbodeDimmerAccessory } from './dimmerAccessory';
+import { AbodeDimmerAccessory } from './devices/dimmer/dimmerAccessory';
 
-import { AbodeSwitchAccessory } from './switchAccessory';
-import { AbodeBulbAccessory } from './bulbAccessory';
+import { AbodeSwitchAccessory } from './devices/switch/switchAccessory';
+import { AbodeBulbAccessory } from './devices/bulb/bulbAccessory';
+import { getDevices } from './utils/light.api';
 
 interface Config extends PlatformConfig {
   readonly email?: string;
@@ -87,9 +85,9 @@ export class AbodeLightsPlatform implements DynamicPlatformPlugin {
   }
 
   /**
- * This function is invoked when homebridge restores cached accessories from disk at startup.
- * It should be used to setup event handlers for characteristics and update respective values.
- */
+   * This function is invoked when homebridge restores cached accessories from disk at startup.
+   * It should be used to setup event handlers for characteristics and update respective values.
+   */
   configureAccessory(accessory: PlatformAccessory) {
     this.log.info('Loading accessory from cache:', accessory.displayName);
 
@@ -97,26 +95,21 @@ export class AbodeLightsPlatform implements DynamicPlatformPlugin {
     service!.removeCharacteristic(service!.getCharacteristic(this.Characteristic.FirmwareRevision));
 
     this.cachedAccessories.push(accessory);
-    // this.accessories.push(accessory);
   }
 
   async discoverDevices() {
     try {
       const devices = await getDevices();
 
-      // for each device
-      //   is it a type we can add?
-      //   does it already exist in homekit?
-
       for (const device of devices) {
         // We only support certain devices.
         switch (device.type_tag) {
-          case "device_type.dimmer_meter":
-          case "device_type.power_switch_sensor":
-          case "device_type.light_bulb":
-          case "device_type.hue":
+          case 'device_type.dimmer_meter':
+          case 'device_type.power_switch_sensor':
+          case 'device_type.light_bulb':
+          case 'device_type.hue':
             // start handling the device
-            this.handleDevice(device)
+            this.handleDevice(device);
             break;
 
           // Other device types that we don't support
@@ -130,10 +123,14 @@ export class AbodeLightsPlatform implements DynamicPlatformPlugin {
   }
 
   async updateStatus(accessory: any) {
+    this.log.debug('Updating status for device: ', accessory.context.device.name);
     try {
       const devices = await getDevices();
+
       const id = accessory.context.device.id;
       const device = devices.find((d) => d.id === id);
+
+      this.log.debug('updateStatus: device statuses on update:', device?.statuses);
 
       if (!device) {
         this.log.warn('updateStatus did not find device', id);
@@ -141,28 +138,47 @@ export class AbodeLightsPlatform implements DynamicPlatformPlugin {
       }
 
       switch (device.type_tag) {
-        case "device_type.dimmer_meter": {
-          const d = device as AbodeDimmerDevice;
-          const service = accessory.getService(this.Service.Lightbulb);
-          const currentState = this.convertAbodeDimmerStatusToDimmerCurrentState(d);
-          const currentBrightness = d.statusEx
-          service.getCharacteristic(this.Characteristic.On).updateValue(currentState);
-          service.getCharacteristic(this.Characteristic.Brightness).updateValue(currentBrightness);
-        }
+        case 'device_type.dimmer_meter':
+          {
+            const d = device as AbodeDimmerDevice;
+            const service = accessory.getService(this.Service.Lightbulb);
+            const currentState = this.convertAbodeStateToPlatformState(d.statuses.switch);
+            let currentBrightness = Number(d.statuses.level);
+            if (currentBrightness > 100) {
+              currentBrightness = 100;
+            } else if (currentBrightness < 0) {
+              currentBrightness = 0;
+            }
+            service.getCharacteristic(this.Characteristic.On).updateValue(currentState);
+            service.getCharacteristic(this.Characteristic.Brightness).updateValue(currentBrightness);
+          }
           return;
-        case "device_type.power_switch_sensor": {
-          const d = device as AbodeSwitchDevice;
-          const service = accessory.getService(this.Service.Switch);
-          const currentState = this.convertAbodeSwitchStatusToSwitchCurrentState(d);
-          service.getCharacteristic(this.Characteristic.On).updateValue(currentState)
-        }
+        case 'device_type.power_switch_sensor':
+          {
+            const d = device as AbodeSwitchDevice;
+            const service = accessory.getService(this.Service.Switch);
+            const currentState = this.convertAbodeStateToPlatformState(d.status);
+            service.getCharacteristic(this.Characteristic.On).updateValue(currentState);
+          }
           return;
-        case "device_type.light_bulb":
-        case "device_type.hue":
-          // start handling the device
+        case 'device_type.light_bulb':
+        case 'device_type.hue':
+          {
+            const d = device as AbodeLightBulbDevice;
+            const service = accessory.getService(this.Service.Lightbulb);
+            const currentState = this.convertAbodeStateToPlatformState(d.statuses.switch);
+
+            service.getCharacteristic(this.Characteristic.On).updateValue(currentState);
+            service.getCharacteristic(this.Characteristic.Hue).updateValue(d.statuses.hue);
+            service.getCharacteristic(this.Characteristic.Saturation).updateValue(d.statuses.saturation);
+            service.getCharacteristic(this.Characteristic.Brightness).updateValue(d.statuses.level);
+            service
+              .getCharacteristic(this.Characteristic.ColorTemperature)
+              .updateValue(Math.floor(convertKelvinMireds(d.statuses.color_temp)));
+          }
           return;
 
-        // Other device types that we don't support
+        // Other device types that aren't supported
         default:
           return;
       }
@@ -176,7 +192,7 @@ export class AbodeLightsPlatform implements DynamicPlatformPlugin {
   }
 
   findCachedAccessory(device: any) {
-    return this.cachedAccessories.find(accessory => accessory.UUID === this.getUuid(device));
+    return this.cachedAccessories.find((accessory) => accessory.UUID === this.getUuid(device));
   }
 
   registerNewAccessory(device: any, name: string) {
@@ -191,89 +207,71 @@ export class AbodeLightsPlatform implements DynamicPlatformPlugin {
   }
 
   hookAccessory(accessory: any, device: any) {
-    // Need to determine the type of device, and register it approprately
-
-    this.log.debug("Hooking device of type ", device.type_tag)
+    this.log.debug('Hooking device ', device.name, ' to the accessory.');
     switch (device.type_tag) {
       // A Dimmer switch
-      case "device_type.dimmer_meter":
-        if (isDeviceTypeDimmer(device)) {
-          new AbodeDimmerAccessory(this, accessory, device);
-          this.accessories.push(accessory);
-        }
+      case 'device_type.dimmer_meter':
+        new AbodeDimmerAccessory(this, accessory, device);
+        this.accessories.push(accessory);
         break;
       // A switch
-      case "device_type.power_switch_sensor":
+      case 'device_type.power_switch_sensor':
         new AbodeSwitchAccessory(this, accessory, device);
-        this.accessories.push(accessory)
+        this.accessories.push(accessory);
         break;
-      // An Abode light bulb
-      case "device_type.light_bulb":
-        this.log.debug('Found an Abode lightbulb');
-        new AbodeBulbAccessory(this, accessory, device)
-        this.accessories.push(accessory)
-        break;
-      //  Other wifi connected bulbs
-      case "device_type.hue":
-        this.log.debug('Found a wifi bulb');
+      // A light bulb
+      case 'device_type.light_bulb':
+      case 'device_type.hue':
+        new AbodeBulbAccessory(this, accessory, device);
+        this.accessories.push(accessory);
         break;
       // Other device types
       default:
         break;
     }
-
   }
 
+  // This is triggered by the Abode Event DEVICE_UPDATED, specifically when a device is
+  // updated and Abode sends a websocket notifiation for the update.
   handleDeviceUpdated(deviceId: string) {
     const accessory = this.accessories.find((a) => a.context.device.id === deviceId);
+
+    // Abode will send an update event for actions taken against devices from HomeKit or
+    // from another interface (Abode webpage or app), etc. To prevent reprocessing an update
+    // for the device we just sent an update for, check to see if the updated device id
+    // matches the one we just sent a request for. If so, just return.
+    if (getLastUpdatedDevice() === deviceId) {
+      this.log.debug(`Ignoring update for ${deviceId} because it was the last device we updated from HomeKit.`);
+      return;
+    }
+
     if (accessory) {
-      this.log.debug('Updating device ', accessory.context.device.name)
       this.updateStatus(accessory);
     }
   }
 
-  convertAbodeSwitchStatusToSwitchCurrentState(device: AbodeSwitchDevice): CharacteristicValue {
-    switch (device.status) {
-      case AbodeSwitchStatus.On:
+  async updateAccessories(): Promise<boolean> {
+    // Sync status and check for any new or removed accessories.
+    this.discoverDevices();
+
+    // Refresh the accessory cache.
+    this.api.updatePlatformAccessories(this.accessories);
+    return true;
+  }
+
+  convertAbodeStateToPlatformState(state: string): CharacteristicValue {
+    switch (state) {
+      case '1':
+      case 'On':
         return !!this.Characteristic.On;
       default:
         return !this.Characteristic.On;
-    }
-  }
-
-  convertSwitchTargetStateToAbodeSwitchStatusInt(value: CharacteristicValue): AbodeSwitchStatusInt {
-    if (value) {
-      return AbodeSwitchStatusInt.On;
-    } else {
-      return AbodeSwitchStatusInt.Off;
-    }
-  }
-
-  convertAbodeDimmerStatusToDimmerCurrentState(device: AbodeDimmerDevice): CharacteristicValue {
-    switch (device.status) {
-      case AbodeSwitchStatus.On:
-        return !!this.Characteristic.On;
-      default:
-        return !this.Characteristic.On;
-    }
-  }
-
-  getDimmerCurrentBrightness(device: AbodeDimmerDevice): CharacteristicValue {
-    return device.statusEx;
-  }
-
-  convertDimmerTargetStateToAbodeDimmerStatusInt(value: CharacteristicValue): number {
-    if (value) {
-      return <number>value;
-    } else {
-      return AbodeDimmerStatusInt.Off;
     }
   }
 
   handleDevice(device: AbodeDevice) {
-
     // Deterine if the light is already registered
-    let accessory = this.findCachedAccessory(device)
+    let accessory = this.findCachedAccessory(device);
     if (accessory) {
       this.log.info('Restoring existing accessory from cache:', accessory.displayName);
       accessory.context.device = {
@@ -284,10 +282,7 @@ export class AbodeLightsPlatform implements DynamicPlatformPlugin {
     } else {
       this.log.info('Adding new accessory:', device.name);
       accessory = this.registerNewAccessory(device, device.name);
-      this.log.debug('accessory device id = ', accessory.context.device.id)
     }
-
-    this.log.debug("Hooking device to accessory", device.name);
     this.hookAccessory(accessory, device);
   }
 }
