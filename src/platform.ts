@@ -130,8 +130,6 @@ export class AbodeLightsPlatform implements DynamicPlatformPlugin {
       const id = accessory.context.device.id;
       const device = devices.find((d) => d.id === id);
 
-      this.log.debug('updateStatus: device statuses on update:', device?.statuses);
-
       if (!device) {
         this.log.warn('updateStatus did not find device', id);
         return;
