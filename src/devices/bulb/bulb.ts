@@ -10,6 +10,7 @@ export default class Bulb {
   private ID = '';
   private UUID = '';
   private Name = '';
+  private Version = '';
   private States = {
     power: 0,
     color: {
@@ -43,10 +44,15 @@ export default class Bulb {
     return this.Name;
   }
 
+  public getProductVersion() {
+    return this.Version;
+  }
+
   async updateStates(callback) {
     this.ID = this.light.id;
     this.UUID = this.light.uuid;
     this.Name = this.light.name;
+    this.Version = this.light.version;
     this.States.power = this.light.statuses.switch;
     this.States.color.hue = this.light.statuses.hue;
     this.States.color.saturation = this.light.statuses.saturation;

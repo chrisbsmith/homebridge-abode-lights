@@ -80,7 +80,7 @@ export default class Dimmer {
     return this.light.id;
   }
 
-  public getVersion() {
+  public getProductVersion() {
     return this.light.version;
   }
 }

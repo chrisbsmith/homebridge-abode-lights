@@ -13,6 +13,8 @@ import { convertKelvinMireds } from './utils/colorFunctions';
 
 import { abodeInit } from './abode/api';
 
+import { difference as _difference } from 'lodash';
+
 import {
   AbodeDevice,
   AbodeDimmerDevice,
@@ -31,6 +33,7 @@ import { getDevices } from './utils/light.api';
 interface Config extends PlatformConfig {
   readonly email?: string;
   readonly password?: string;
+  readonly pollingInterval?: number;
 }
 
 export class AbodeLightsPlatform implements DynamicPlatformPlugin {
@@ -81,7 +84,16 @@ export class AbodeLightsPlatform implements DynamicPlatformPlugin {
         }, 30000);
       });
       AbodeEvents.on(DEVICE_UPDATED, this.handleDeviceUpdated.bind(this));
+
+      if (config.pollingInterval) {
+        setInterval(() => {
+          this.updateAccessories().catch((error) => {
+            this.log.error(error)
+          })
+        }, config.pollingInterval * 60 * 1000);
+      }
     });
+
   }
 
   /**
@@ -91,8 +103,8 @@ export class AbodeLightsPlatform implements DynamicPlatformPlugin {
   configureAccessory(accessory: PlatformAccessory) {
     this.log.info('Loading accessory from cache:', accessory.displayName);
 
-    const service = accessory.getService(this.Service.AccessoryInformation);
-    service!.removeCharacteristic(service!.getCharacteristic(this.Characteristic.FirmwareRevision));
+    // const service = accessory.getService(this.Service.AccessoryInformation);
+    // service!.removeCharacteristic(service!.getCharacteristic(this.Characteristic.FirmwareRevision));
 
     this.cachedAccessories.push(accessory);
   }
@@ -100,6 +112,18 @@ export class AbodeLightsPlatform implements DynamicPlatformPlugin {
   async discoverDevices() {
     try {
       const devices = await getDevices();
+
+
+      // TODO: Create a new function to check and remove devices
+      // Check to see if any devices have been removed from Abode.
+      let cachedAccessoryUUIDs = this.returnCachedAccessoryUUIDs();
+      let deviceUUIDs = this.returnDeviceUUIDs(devices);
+      let missingDevices = _difference(cachedAccessoryUUIDs, deviceUUIDs);
+      this.log.debug('Missing Devices: ', missingDevices);
+
+      if (missingDevices.length > 0) {
+        this.removeCachedAccessories(missingDevices);
+      }
 
       for (const device of devices) {
         // We only support certain devices.
@@ -192,6 +216,30 @@ export class AbodeLightsPlatform implements DynamicPlatformPlugin {
   findCachedAccessory(device: any) {
     return this.cachedAccessories.find((accessory) => accessory.UUID === this.getUuid(device));
   }
+
+  returnCachedAccessoryUUIDs() {
+    return this.cachedAccessories.map(accessory => accessory.UUID);
+  }
+
+  returnDeviceUUIDs(devices: any) {
+    return devices.map(device => this.getUuid(device));
+  }
+
+  removeCachedAccessories(uuids: string[]) {
+    for (const uuid of uuids) {
+      let cachedAccessory = this.cachedAccessories.find((accessory) => accessory.UUID === uuid);
+      if (!cachedAccessory) {
+        this.log.warn('Unable to remove accessory with UUID: ', uuid);
+        break;
+      }
+      this.log.warn('Removing unused accessory from cache:', cachedAccessory.displayName);
+      this.api.unregisterPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [cachedAccessory]);
+      // TODO: also need to remove the accessory from the cached accessory array
+
+      // delete this.cachedAccessories[cachedAccessory.UUID];
+    }
+  }
+
 
   registerNewAccessory(device: any, name: string) {
     const accessory = new this.api.platformAccessory(name, this.getUuid(device));
