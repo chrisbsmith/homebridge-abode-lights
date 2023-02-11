@@ -42,7 +42,8 @@ export class AbodeBulbAccessory {
       .setCharacteristic(this.platform.Characteristic.Manufacturer, this.bulb.getManufacturer())
       .setCharacteristic(this.platform.Characteristic.Model, this.bulb.getProductName())
       .setCharacteristic(this.platform.Characteristic.SerialNumber, this.bulb.getProductId())
-      .setCharacteristic(this.platform.Characteristic.AppMatchingIdentifier, 'com.abode.abode');
+      .setCharacteristic(this.platform.Characteristic.AppMatchingIdentifier, 'com.abode.abode')
+      .setCharacteristic(this.platform.Characteristic.FirmwareRevision, this.bulb.getProductVersion());
 
     this.service
       .setCharacteristic(this.platform.Characteristic.On, this.bulb.getOn())

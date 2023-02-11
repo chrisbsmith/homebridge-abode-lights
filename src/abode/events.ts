@@ -11,6 +11,7 @@ export const SOCKET_DISCONNECTED = 'socket_disconnected';
 
 let pause = false;
 const processEvent = (event: unknown) => {
+  // log.debug('Processing a WS Event: ', event);
   if (pause) return;
   if (!Array.isArray(event)) return;
   if (event[0] !== AbodeEventType.DeviceUpdate) return;

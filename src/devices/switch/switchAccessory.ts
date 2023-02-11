@@ -43,7 +43,7 @@ export class AbodeSwitchAccessory {
       .setCharacteristic(this.platform.Characteristic.Model, 'Switch')
       .setCharacteristic(this.platform.Characteristic.SerialNumber, this.switch.getProductUuid())
       .setCharacteristic(this.platform.Characteristic.AppMatchingIdentifier, 'com.abode.abode')
-      .setCharacteristic(this.platform.Characteristic.FirmwareRevision, this.switch.getProductVersion());;
+      .setCharacteristic(this.platform.Characteristic.FirmwareRevision, this.switch.getProductVersion());
   }
 
   setSoftwareCharacteristics() {

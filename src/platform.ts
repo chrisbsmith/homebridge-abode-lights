@@ -85,13 +85,16 @@ export class AbodeLightsPlatform implements DynamicPlatformPlugin {
       });
       AbodeEvents.on(DEVICE_UPDATED, this.handleDeviceUpdated.bind(this));
 
-      if (config.pollingInterval) {
-        setInterval(() => {
-          this.updateAccessories().catch((error) => {
-            this.log.error(error)
-          })
-        }, config.pollingInterval * 60 * 1000);
-      }
+      // TODO: Rework the updateAccessories function to only check if new devices
+      // have shown up or if devices have been removed. No need to rebind the devices
+      // to the platform.
+      // if (config.pollingInterval) {
+      //   setInterval(() => {
+      //     this.updateAccessories().catch((error) => {
+      //       this.log.error(error)
+      //     })
+      //   }, config.pollingInterval * 60 * 1000);
+      // }
     });
 
   }
@@ -103,9 +106,6 @@ export class AbodeLightsPlatform implements DynamicPlatformPlugin {
   configureAccessory(accessory: PlatformAccessory) {
     this.log.info('Loading accessory from cache:', accessory.displayName);
 
-    // const service = accessory.getService(this.Service.AccessoryInformation);
-    // service!.removeCharacteristic(service!.getCharacteristic(this.Characteristic.FirmwareRevision));
-
     this.cachedAccessories.push(accessory);
   }
 
@@ -113,32 +113,11 @@ export class AbodeLightsPlatform implements DynamicPlatformPlugin {
     try {
       const devices = await getDevices();
 
-
-      // TODO: Create a new function to check and remove devices
-      // Check to see if any devices have been removed from Abode.
-      let cachedAccessoryUUIDs = this.returnCachedAccessoryUUIDs();
-      let deviceUUIDs = this.returnDeviceUUIDs(devices);
-      let missingDevices = _difference(cachedAccessoryUUIDs, deviceUUIDs);
-      this.log.debug('Missing Devices: ', missingDevices);
-
-      if (missingDevices.length > 0) {
-        this.removeCachedAccessories(missingDevices);
-      }
+      this.checkForRemovedAccessories(devices);
 
       for (const device of devices) {
-        // We only support certain devices.
-        switch (device.type_tag) {
-          case 'device_type.dimmer_meter':
-          case 'device_type.power_switch_sensor':
-          case 'device_type.light_bulb':
-          case 'device_type.hue':
-            // start handling the device
-            this.handleDevice(device);
-            break;
-
-          // Other device types that we don't support
-          default:
-            continue;
+        if (this.isDeviceSupported(device)) {
+          this.handleDevice(device);
         }
       }
     } catch (error: any) {
@@ -193,7 +172,14 @@ export class AbodeLightsPlatform implements DynamicPlatformPlugin {
             service.getCharacteristic(this.Characteristic.On).updateValue(currentState);
             service.getCharacteristic(this.Characteristic.Hue).updateValue(d.statuses.hue);
             service.getCharacteristic(this.Characteristic.Saturation).updateValue(d.statuses.saturation);
-            service.getCharacteristic(this.Characteristic.Brightness).updateValue(d.statuses.level);
+            let currentBrightness = Number(d.statuses.level);
+            if (currentBrightness > 100) {
+              currentBrightness = 100;
+            } else if (currentBrightness < 0) {
+              currentBrightness = 0;
+            }
+
+            service.getCharacteristic(this.Characteristic.Brightness).updateValue(currentBrightness);
             service
               .getCharacteristic(this.Characteristic.ColorTemperature)
               .updateValue(Math.floor(convertKelvinMireds(d.statuses.color_temp)));
@@ -206,6 +192,24 @@ export class AbodeLightsPlatform implements DynamicPlatformPlugin {
       }
     } catch (error: any) {
       this.log.error('Failed to updateStatus', error.message);
+    }
+  }
+
+  // Check to see if this is a device that we currently support
+  isDeviceSupported(device: AbodeDevice) {
+    // We only support certain devices.
+    switch (device.type_tag) {
+      case 'device_type.dimmer_meter':
+      case 'device_type.power_switch_sensor':
+      case 'device_type.light_bulb':
+      case 'device_type.hue':
+        // start handling the device
+        return true;
+        break;
+
+      // Other device types that we don't support
+      default:
+        return false;
     }
   }
 
@@ -225,18 +229,29 @@ export class AbodeLightsPlatform implements DynamicPlatformPlugin {
     return devices.map(device => this.getUuid(device));
   }
 
+  async checkForRemovedAccessories(devices: AbodeDevice[]) {
+    const cachedAccessoryUUIDs = this.returnCachedAccessoryUUIDs();
+    const deviceUUIDs = this.returnDeviceUUIDs(devices);
+    const missingDevices = _difference(cachedAccessoryUUIDs, deviceUUIDs);
+
+    this.log.debug('Missing Devices to be removed from the platform: ', missingDevices);
+
+    if (missingDevices.length > 0) {
+      this.removeCachedAccessories(missingDevices);
+    }
+  }
+
   removeCachedAccessories(uuids: string[]) {
     for (const uuid of uuids) {
-      let cachedAccessory = this.cachedAccessories.find((accessory) => accessory.UUID === uuid);
+      const cachedAccessory = this.cachedAccessories.find((accessory) => accessory.UUID === uuid);
       if (!cachedAccessory) {
         this.log.warn('Unable to remove accessory with UUID: ', uuid);
         break;
       }
       this.log.warn('Removing unused accessory from cache:', cachedAccessory.displayName);
       this.api.unregisterPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [cachedAccessory]);
-      // TODO: also need to remove the accessory from the cached accessory array
 
-      // delete this.cachedAccessories[cachedAccessory.UUID];
+      delete this.cachedAccessories[cachedAccessory.UUID];
     }
   }
 
@@ -296,15 +311,6 @@ export class AbodeLightsPlatform implements DynamicPlatformPlugin {
     }
   }
 
-  async updateAccessories(): Promise<boolean> {
-    // Sync status and check for any new or removed accessories.
-    this.discoverDevices();
-
-    // Refresh the accessory cache.
-    this.api.updatePlatformAccessories(this.accessories);
-    return true;
-  }
-
   convertAbodeStateToPlatformState(state: string): CharacteristicValue {
     switch (state) {
       case '1':
@@ -331,4 +337,49 @@ export class AbodeLightsPlatform implements DynamicPlatformPlugin {
     }
     this.hookAccessory(accessory, device);
   }
+
+
+  // TODO: The auto syncing of accessories need to be reworked.
+
+  // async updateAccessories(): Promise<boolean> {
+  //   // Sync status and check for any new or removed accessories.
+
+  //   // If we're processing new devices through an auto update, we
+  //   // dont' want to restore existing devices from cache.
+  //   const restore = false;
+  //   const devices = await getDevices();
+  //   this.checkForRemovedAccessories(devices)
+
+  //   for (const device of devices) {
+  //     if (this.isDeviceSupported(device)) {
+  //       this.handleDevice(device, restore);
+  //     }
+  //   }
+
+  //   // Refresh the accessory cache.
+  //   // this.api.updatePlatformAccessories(this.accessories);
+  //   return true;
+  // }
+
+  // TODO: This needs to be reworked to properly add new accessories that
+  // were added to Abode after initial launch.
+
+  // handleDevice(device: AbodeDevice, restore: boolean = true) {
+  //   // Deterine if the light is already registered
+  //   let accessory = this.findCachedAccessory(device);
+  //   if (accessory && restore) {
+  //     this.log.info('Restoring existing accessory from cache:', accessory.displayName);
+  //     accessory.context.device = {
+  //       id: device.id,
+  //       name: device.name,
+  //       version: device.version,
+  //     };
+  //     this.hookAccessory(accessory, device);
+  //   }
+  //   else if (!accessory) {
+  //     this.log.info('Adding new accessory:', device.name);
+  //     accessory = this.registerNewAccessory(device, device.name);
+  //     this.hookAccessory(accessory, device);
+  //   }
+  // }
 }

@@ -40,7 +40,7 @@ export class AbodeDimmerAccessory {
       .setCharacteristic(this.platform.Characteristic.Model, 'Dimmer')
       .setCharacteristic(this.platform.Characteristic.SerialNumber, this.dimmer.getProductId())
       .setCharacteristic(this.platform.Characteristic.AppMatchingIdentifier, 'com.abode.abode')
-      .setCharacteristic(this.platform.Characteristic.FirmwareRevision, this.dimmer.getProductVersion());;
+      .setCharacteristic(this.platform.Characteristic.FirmwareRevision, this.dimmer.getProductVersion());
   }
 
   setSoftwareCharacteristics() {

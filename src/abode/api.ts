@@ -64,23 +64,6 @@ export const api = http.create({
   },
 });
 
-// axiosRetry(api, {
-//   retries: 3, // number of retries
-//   retryDelay: (retryCount) => {
-//     console.log(`retry attempt: ${retryCount}`);
-//     console.log('api: ', api)
-//     return retryCount * 2000; // time interval between retries
-//   },
-//   retryCondition: (error) => {
-//     // if retry condition is not specified, by default idempotent requests are retried
-//     return error.response?.status === 400;
-//   },
-// });
-
-// const MAX_REQUESTS_COUNT = 5
-// const INTERVAL_MS = 50
-// let PENDING_REQUESTS = 0
-
 api.interceptors.request.use(
   (config) => {
     if (!config.url) {
@@ -128,29 +111,10 @@ api.interceptors.request.use(
 
 api.interceptors.response.use(
   (response) => {
-    // Any status code that lie within the range of 2xx cause this function to trigger
-
-    // TODO: Investigate queueing messages for light bulbs
-    // const re = /integration/g
-    // const isIntegrationPath = response.config.url?.search(re) !== -1;
-
-    // if (isIntegrationPath) {
-    //   PENDING_REQUESTS = Math.max(0, PENDING_REQUESTS - 1);
-    //   return Promise.resolve(response);
-    // }
-
     return response;
   },
   (error) => {
     // Any status codes that falls outside the range of 2xx cause this function to trigger
-
-    // TODO: Investigate queueing messages for light bulbs
-    // const re = /integration/g
-    // const isIntegrationPath = error.response.config.url?.search(re) !== -1;
-    // if (isIntegrationPath) {
-    //   PENDING_REQUESTS = Math.max(0, PENDING_REQUESTS - 1)
-    //   return Promise.reject(error);
-    // }
 
     // Abode will throw a 2191 error when it is unable to communicate with the gateway or camera. Not sure if this is
     // a rate limit from Abode's side or something else. However, it doesn't seem to be very harmful and just prevents

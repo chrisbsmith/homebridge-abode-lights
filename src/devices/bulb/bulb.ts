@@ -54,9 +54,9 @@ export default class Bulb {
     this.Name = this.light.name;
     this.Version = this.light.version;
     this.States.power = this.light.statuses.switch;
-    this.States.color.hue = this.light.statuses.hue;
-    this.States.color.saturation = this.light.statuses.saturation;
-    this.States.color.brightness = this.light.statuses.level;
+    this.States.color.hue = (this.light.statuses.hue === 'N/A') ? 0 : this.light.statuses.hue;
+    this.States.color.saturation = (this.light.statuses.saturation === 'N/A') ? 0 : this.light.statuses.saturation;
+    this.States.color.brightness = (this.light.statuses.level === 'N/A') ? 0 : this.light.statuses.level;
     this.States.color.color_temp = Math.floor(convertKelvinMireds(this.light.statuses.color_temp));
 
     callback();
@@ -101,7 +101,7 @@ export default class Bulb {
     });
   }
 
-  // TODO: Testing - HomeKit always triggers a Hue update before a Saturation update. Rather
+  // HomeKit always triggers a Hue update before a Saturation update. Rather
   // than sending two requests to Abode to update Hue and then Saturation, just set the hue on
   // the device, and then let the setSaturation function handle the update to Abode.
   async setHue(value) {
