@@ -123,11 +123,12 @@ api.interceptors.response.use(
     // connection.If the problem persists, please reboot your gateway / camera or contact support for assistance."
     // It's safe to just gobble this one up and keep moving
     if (error.response.data.errorCode === 2191) {
-      log.info('Temporarily unable to communicate with your Abode gateway/camera. Error should clear itself.');
+      log.debug('Temporarily unable to communicate with your Abode gateway/camera. Error should clear itself.');
       log.debug('Failed request: ', error.response);
-      log.info(`return error code = ${error.response.status}`);
+      log.debug(`return error code = ${error.response.status}`);
       return;
     }
+    log.error(`Caught an unhandled exception: ${error}.`)
     return Promise.reject(error);
   },
 );

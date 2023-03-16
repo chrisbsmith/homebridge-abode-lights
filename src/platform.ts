@@ -9,7 +9,7 @@ import {
   Service,
 } from 'homebridge';
 import { AbodeEvents, DEVICE_UPDATED, SOCKET_CONNECTED, SOCKET_DISCONNECTED } from './abode/events';
-import { convertKelvinMireds } from './utils/colorFunctions';
+// import { convertKelvinMireds } from './utils/colorFunctions';
 
 import { abodeInit } from './abode/api';
 
@@ -33,7 +33,8 @@ import { getDevices } from './utils/light.api';
 interface Config extends PlatformConfig {
   readonly email?: string;
   readonly password?: string;
-  readonly pollingInterval?: number;
+  // TODO: enable when polling is reconfigured
+  // readonly pollingInterval?: number;
 }
 
 export class AbodeLightsPlatform implements DynamicPlatformPlugin {
@@ -178,11 +179,17 @@ export class AbodeLightsPlatform implements DynamicPlatformPlugin {
             } else if (currentBrightness < 0) {
               currentBrightness = 0;
             }
-
             service.getCharacteristic(this.Characteristic.Brightness).updateValue(currentBrightness);
-            service
-              .getCharacteristic(this.Characteristic.ColorTemperature)
-              .updateValue(Math.floor(convertKelvinMireds(d.statuses.color_temp)));
+
+            let colorTemperature = Number(d.statuses.color_temp);
+            if (colorTemperature < 154) {
+              colorTemperature = 154;
+            } else if (colorTemperature > 500) {
+              colorTemperature = 500
+            }
+            // service.getCharacteristic(this.Characteristic.ColorTemperature).updateValue(Math.floor(convertKelvinMireds(d.statuses.color_temp)));
+            service.getCharacteristic(this.Characteristic.ColorTemperature).updateValue(colorTemperature);
+
           }
           return;
 
@@ -337,7 +344,6 @@ export class AbodeLightsPlatform implements DynamicPlatformPlugin {
     }
     this.hookAccessory(accessory, device);
   }
-
 
   // TODO: The auto syncing of accessories need to be reworked.
 

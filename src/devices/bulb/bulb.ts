@@ -1,10 +1,9 @@
-import { setBulbPower, updateBulb } from '../../utils/light.api';
-
+import { setBulbPower, } from '../../utils/light.api';
 import { convertKelvinMireds } from '../../utils/colorFunctions';
-
 import { AbodeBulb } from './bulbInfo';
-
 import { setLastUpdatedDevice } from '../devices';
+import { api } from '../../abode/api'
+import { debounce } from 'lodash';
 
 export default class Bulb {
   private ID = '';
@@ -96,7 +95,7 @@ export default class Bulb {
     };
 
     setLastUpdatedDevice(this.getProductId());
-    updateBulb(this.getProductUuid(), data)?.catch((error) => {
+    this.updateBulb(this.getProductUuid(), data)?.catch((error) => {
       throw new Error(error);
     });
   }
@@ -106,12 +105,6 @@ export default class Bulb {
   // the device, and then let the setSaturation function handle the update to Abode.
   async setHue(value) {
     this.States.color.hue = value;
-
-    // const data = {
-    //   action: 'setcolor',
-    //   hue: value,
-    //   saturation: this.getSaturation(),
-    // };
   }
 
   async setSaturation(value) {
@@ -123,7 +116,7 @@ export default class Bulb {
       saturation: value,
     };
     setLastUpdatedDevice(this.getProductId());
-    updateBulb(this.getProductUuid(), data)?.catch((error) => {
+    this.updateBulb(this.getProductUuid(), data)?.catch((error) => {
       throw new Error(error);
     });
   }
@@ -135,7 +128,7 @@ export default class Bulb {
     };
 
     setLastUpdatedDevice(this.getProductId());
-    updateBulb(this.getProductUuid(), data)?.catch((error) => {
+    this.updateBulb(this.getProductUuid(), data)?.catch((error) => {
       throw new Error(error);
     });
   }
@@ -157,7 +150,13 @@ export default class Bulb {
   }
 
   getColorTemperature() {
-    return this.States.color.color_temp;
+    let value = this.States.color.color_temp
+    if (value < 154) {
+      value = 154;
+    } else if (value > 500) {
+      value = 500
+    }
+    return value;
   }
 
   public getMinKelvin() {
@@ -179,4 +178,11 @@ export default class Bulb {
   getManufacturer() {
     return AbodeBulb.manufacturer;
   }
+
+  // This API call has to be in declared at the bulb object level so that
+  // each bulb object inherits the function and does not get caught in the
+  // debounce
+  updateBulb = debounce(async (id: string, data: any) => {
+    api.post(`/integrations/v1/devices/${id}`, data);
+  }, 500);
 }

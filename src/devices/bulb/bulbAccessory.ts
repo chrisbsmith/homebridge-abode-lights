@@ -135,4 +135,5 @@ export class AbodeBulbAccessory {
     );
     func.call(obj, value);
   }
+
 }
