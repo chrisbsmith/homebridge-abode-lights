@@ -185,9 +185,10 @@ export class AbodeLightsPlatform implements DynamicPlatformPlugin {
             if (colorTemperature < 154) {
               colorTemperature = 154;
             } else if (colorTemperature > 500) {
-              colorTemperature = 500
+              colorTemperature = 500;
             }
-            // service.getCharacteristic(this.Characteristic.ColorTemperature).updateValue(Math.floor(convertKelvinMireds(d.statuses.color_temp)));
+            // service.getCharacteristic(this.Characteristic.ColorTemperature)
+            //   .updateValue(Math.floor(convertKelvinMireds(d.statuses.color_temp)));
             service.getCharacteristic(this.Characteristic.ColorTemperature).updateValue(colorTemperature);
 
           }

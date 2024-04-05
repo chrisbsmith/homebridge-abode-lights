@@ -1,8 +1,8 @@
-import { setBulbPower, } from '../../utils/light.api';
+import { setBulbPower } from '../../utils/light.api';
 import { convertKelvinMireds } from '../../utils/colorFunctions';
 import { AbodeBulb } from './bulbInfo';
 import { setLastUpdatedDevice } from '../devices';
-import { api } from '../../abode/api'
+import { api } from '../../abode/api';
 import { debounce } from 'lodash';
 
 export default class Bulb {
@@ -150,11 +150,11 @@ export default class Bulb {
   }
 
   getColorTemperature() {
-    let value = this.States.color.color_temp
+    let value = this.States.color.color_temp;
     if (value < 154) {
       value = 154;
     } else if (value > 500) {
-      value = 500
+      value = 500;
     }
     return value;
   }
