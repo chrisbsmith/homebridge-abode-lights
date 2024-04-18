@@ -68,9 +68,16 @@ export const isDeviceTypeDimmer = (device: AbodeDevice): device is AbodeDimmerDe
 let lastUpdatedDevice = '';
 export const setLastUpdatedDevice = (id: string) => {
   lastUpdatedDevice = id;
+  setTimeout(resetLastUpdatedDevice, 5000);
   return;
 };
 
 export const getLastUpdatedDevice = () => {
   return lastUpdatedDevice;
+};
+
+// resetLastUpdatedDevice resets the lastUpdatedDevice to
+// an empty string
+const resetLastUpdatedDevice = () => {
+  lastUpdatedDevice = '';
 };
