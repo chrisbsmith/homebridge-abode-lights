@@ -1,12 +1,12 @@
 {
 	"name": "homebridge-abode-lights",
-	"version": "2.0.0-alpha.6",
+	"version": "2.0.0-alpha.7",
 	"description": "Homebridge plugin for integrating Abode Switches and Dimmers into HomeKit.",
 	"author": "Chris Smith",
 	"license": "MIT",
 	"main": "dist/index.js",
 	"scripts": {
-		"lint": "eslint src/**.ts src/devices/**/**.ts src/utils/**.ts --max-warnings=0",
+		"lint": "npm install -f && eslint src/**.ts src/devices/**/**.ts src/utils/**.ts --max-warnings=0",
 		"eslint:github-action": "eslint src/",
 		"build": "rm -rf dist && tsc",
 		"watch": "npm run build && npm link && nodemon"

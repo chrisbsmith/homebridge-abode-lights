@@ -316,6 +316,10 @@ export class AbodeLightsPlatform implements DynamicPlatformPlugin {
 
     if (accessory) {
       this.updateStatus(accessory);
+    } else {
+      this.log.debug(`handleDeviceUpdated: Skipped updateStatus for accessory. This should be a new device.
+        Calling discoverDevices()`);
+      this.discoverDevices();
     }
   }
 
