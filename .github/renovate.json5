@@ -20,6 +20,7 @@
   "suppressNotifications": [
     "prIgnoreNotification"
   ],
+  "ignoreDeps": ["eslint"],
   "vulnerabilityAlerts": {
     "labels": [
       "security"
