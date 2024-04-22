@@ -115,7 +115,7 @@ export class AbodeLightsPlatform implements DynamicPlatformPlugin {
       for (const device of devices) {
         if (!this.isDeviceSupported(device)) {
           this.log.debug(`Not handling device: ${device.name}`);
-          return;
+          continue;
         }
         // Deterine if the light is already registered
         let accessory = this.findCachedAccessory(device);
