@@ -22,19 +22,18 @@ import {
   AbodeLightBulbDevice,
   getLastUpdatedDevice,
 } from './devices/devices';
-import { PLATFORM_NAME, PLUGIN_NAME } from './constants';
+import { PLATFORM_NAME, PLUGIN_NAME, POLLING_INTERVAL_MIN } from './constants';
 
 import { AbodeDimmerAccessory } from './devices/dimmer/dimmerAccessory';
 
 import { AbodeSwitchAccessory } from './devices/switch/switchAccessory';
 import { AbodeBulbAccessory } from './devices/bulb/bulbAccessory';
-import { getDevices } from './utils/light.api';
+import { getDevices, getDevice } from './utils/light.api';
 
 interface Config extends PlatformConfig {
   readonly email?: string;
   readonly password?: string;
-  // TODO: enable when polling is reconfigured
-  // readonly pollingInterval?: number;
+  readonly pollingInterval?: number;
 }
 
 export class AbodeLightsPlatform implements DynamicPlatformPlugin {
@@ -69,7 +68,6 @@ export class AbodeLightsPlatform implements DynamicPlatformPlugin {
       }
 
       await this.discoverDevices();
-      // await this.updateStatus();
 
       AbodeEvents.on(SOCKET_CONNECTED, () => {
         this.socketConnected = true;
@@ -86,18 +84,15 @@ export class AbodeLightsPlatform implements DynamicPlatformPlugin {
       });
       AbodeEvents.on(DEVICE_UPDATED, this.handleDeviceUpdated.bind(this));
 
-      // TODO: Rework the updateAccessories function to only check if new devices
-      // have shown up or if devices have been removed. No need to rebind the devices
-      // to the platform.
-      // if (config.pollingInterval) {
-      //   setInterval(() => {
-      //     this.updateAccessories().catch((error) => {
-      //       this.log.error(error)
-      //     })
-      //   }, config.pollingInterval * 60 * 1000);
-      // }
-    });
+      if (config.pollingInterval) {
+        // Ensure interval is not shorter than minimum time.
+        const interval = (config.pollingInterval <= POLLING_INTERVAL_MIN) ? POLLING_INTERVAL_MIN : config.pollingInterval;
 
+        setInterval(() => {
+          this.refreshDevices();
+        }, interval * 60 * 1000);
+      }
+    });
   }
 
   /**
@@ -110,6 +105,7 @@ export class AbodeLightsPlatform implements DynamicPlatformPlugin {
     this.cachedAccessories.push(accessory);
   }
 
+  // DiscoverDevices is used to request a full list of devices from Abode.
   async discoverDevices() {
     try {
       const devices = await getDevices();
@@ -117,9 +113,24 @@ export class AbodeLightsPlatform implements DynamicPlatformPlugin {
       this.checkForRemovedAccessories(devices);
 
       for (const device of devices) {
-        if (this.isDeviceSupported(device)) {
-          this.handleDevice(device);
+        if (!this.isDeviceSupported(device)) {
+          this.log.debug(`Not handling device: ${device.name}`);
+          return;
         }
+        // Deterine if the light is already registered
+        let accessory = this.findCachedAccessory(device);
+        if (accessory) {
+          this.log.info('Restoring existing accessory from cache:', accessory.displayName);
+          accessory.context.device = {
+            id: device.id,
+            name: device.name,
+            version: device.version,
+          };
+        } else {
+          this.log.info('Adding new accessory:', device.name);
+          accessory = this.registerNewAccessory(device, device.name);
+        }
+        this.hookAccessory(accessory, device);
       }
     } catch (error: any) {
       this.log.error('Failed to discoverDevices', error.message);
@@ -127,12 +138,10 @@ export class AbodeLightsPlatform implements DynamicPlatformPlugin {
   }
 
   async updateStatus(accessory: any) {
-    this.log.debug('Updating status for device: ', accessory.context.device.name);
+    this.log.info('Updating status for device: ', accessory.context.device.name);
     try {
-      const devices = await getDevices();
-
       const id = accessory.context.device.id;
-      const device = devices.find((d) => d.id === id);
+      const device = await getDevice(id);
 
       if (!device) {
         this.log.warn('updateStatus did not find device', id);
@@ -206,18 +215,23 @@ export class AbodeLightsPlatform implements DynamicPlatformPlugin {
   // Check to see if this is a device that we currently support
   isDeviceSupported(device: AbodeDevice) {
     // We only support certain devices.
-    switch (device.type_tag) {
-      case 'device_type.dimmer_meter':
-      case 'device_type.power_switch_sensor':
-      case 'device_type.light_bulb':
-      case 'device_type.hue':
-        // start handling the device
-        return true;
-        break;
+    try {
+      switch (device.type_tag) {
+        case 'device_type.dimmer_meter':
+        case 'device_type.power_switch_sensor':
+        case 'device_type.light_bulb':
+        case 'device_type.hue':
+          // start handling the device
+          return true;
+          break;
 
-      // Other device types that we don't support
-      default:
-        return false;
+        // Other device types that we don't support
+        default:
+          return false;
+      }
+    } catch (error) {
+      this.log.error(`isDeviceSupported: caught error: ${error}`);
+      return false;
     }
   }
 
@@ -242,7 +256,7 @@ export class AbodeLightsPlatform implements DynamicPlatformPlugin {
     const deviceUUIDs = this.returnDeviceUUIDs(devices);
     const missingDevices = _difference(cachedAccessoryUUIDs, deviceUUIDs);
 
-    this.log.debug('Missing Devices to be removed from the platform: ', missingDevices);
+    this.log.info('Missing Devices to be removed from the platform: ', missingDevices);
 
     if (missingDevices.length > 0) {
       this.removeCachedAccessories(missingDevices);
@@ -302,7 +316,7 @@ export class AbodeLightsPlatform implements DynamicPlatformPlugin {
 
   // This is triggered by the Abode Event DEVICE_UPDATED, specifically when a device is
   // updated and Abode sends a websocket notifiation for the update.
-  handleDeviceUpdated(deviceId: string) {
+  async handleDeviceUpdated(deviceId: string) {
     const accessory = this.accessories.find((a) => a.context.device.id === deviceId);
 
     // Abode will send an update event for actions taken against devices from HomeKit or
@@ -315,13 +329,44 @@ export class AbodeLightsPlatform implements DynamicPlatformPlugin {
     }
 
     if (accessory) {
-      this.updateStatus(accessory);
+      this.log.debug(`Updating status for ${accessory.displayName}.`);
+      await this.updateStatus(accessory);
     } else {
-      this.log.debug(`handleDeviceUpdated: Skipped updateStatus for accessory. This should be a new device.
-        Calling discoverDevices()`);
-      this.discoverDevices();
+      this.log.debug(`Found a new device: ${deviceId}.`);
+      await this.addDevice(deviceId);
     }
   }
+
+  // Adds a new device if found after initialization
+  async addDevice(deviceId: string) {
+    const device = await getDevice(deviceId);
+
+    // Check to see if we got an empty device back. If so, then don't try to process it.
+    if (device.name === '') {
+      this.log.debug('addDevice: an empty device was returned, so don\'t process it.');
+      return;
+    }
+
+    this.log.debug(`addDevice: returned from getDevice with a device of : ${device.name}. Attempting to register it.`);
+
+    if (!this.isDeviceSupported(device)) {
+      this.log.debug(`addDevice: ${device.name} is not supported. Skipping.`);
+      return;
+    }
+
+    this.log.info('Adding new accessory:', device.name);
+    const accessory = this.registerNewAccessory(device, device.name);
+    this.hookAccessory(accessory, device);
+  }
+
+  async refreshDevices() {
+    this.log.debug('refreshDevices: requesting all devices from Abode.');
+    const devices = await getDevices();
+    this.log.debug(`refreshDevices: Abode returned ${devices.length} devices. Checking for removed devices.`);
+    this.checkForRemovedAccessories(devices);
+    this.log.debug('refreshDevices: finished refreshing devices.');
+  }
+
 
   convertAbodeStateToPlatformState(state: string): CharacteristicValue {
     switch (state) {
@@ -332,65 +377,4 @@ export class AbodeLightsPlatform implements DynamicPlatformPlugin {
         return !this.Characteristic.On;
     }
   }
-
-  handleDevice(device: AbodeDevice) {
-    // Deterine if the light is already registered
-    let accessory = this.findCachedAccessory(device);
-    if (accessory) {
-      this.log.info('Restoring existing accessory from cache:', accessory.displayName);
-      accessory.context.device = {
-        id: device.id,
-        name: device.name,
-        version: device.version,
-      };
-    } else {
-      this.log.info('Adding new accessory:', device.name);
-      accessory = this.registerNewAccessory(device, device.name);
-    }
-    this.hookAccessory(accessory, device);
-  }
-
-  // TODO: The auto syncing of accessories need to be reworked.
-
-  // async updateAccessories(): Promise<boolean> {
-  //   // Sync status and check for any new or removed accessories.
-
-  //   // If we're processing new devices through an auto update, we
-  //   // dont' want to restore existing devices from cache.
-  //   const restore = false;
-  //   const devices = await getDevices();
-  //   this.checkForRemovedAccessories(devices)
-
-  //   for (const device of devices) {
-  //     if (this.isDeviceSupported(device)) {
-  //       this.handleDevice(device, restore);
-  //     }
-  //   }
-
-  //   // Refresh the accessory cache.
-  //   // this.api.updatePlatformAccessories(this.accessories);
-  //   return true;
-  // }
-
-  // TODO: This needs to be reworked to properly add new accessories that
-  // were added to Abode after initial launch.
-
-  // handleDevice(device: AbodeDevice, restore: boolean = true) {
-  //   // Deterine if the light is already registered
-  //   let accessory = this.findCachedAccessory(device);
-  //   if (accessory && restore) {
-  //     this.log.info('Restoring existing accessory from cache:', accessory.displayName);
-  //     accessory.context.device = {
-  //       id: device.id,
-  //       name: device.name,
-  //       version: device.version,
-  //     };
-  //     this.hookAccessory(accessory, device);
-  //   }
-  //   else if (!accessory) {
-  //     this.log.info('Adding new accessory:', device.name);
-  //     accessory = this.registerNewAccessory(device, device.name);
-  //     this.hookAccessory(accessory, device);
-  //   }
-  // }
 }
