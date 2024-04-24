@@ -9,13 +9,13 @@ jobs:
     strategy:
       matrix:
         # the Node.js versions to build on
-        node-version: [14.x, 15.x, 16.x, 17.x, 18.x, 19.x]
+        node-version: [18.x, 20.x]
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@1d96c772d19495a3b5c517cd2bc0cb401ea0529f # v4
 
       - name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v1
+        uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4
         with:
           node-version: ${{ matrix.node-version }}
 

@@ -9,12 +9,20 @@
 			"email": {
 				"title": "Email",
 				"type": "string",
+				"description": "Email registered with Abode",
 				"required": true
 			},
 			"password": {
 				"title": "Password",
 				"type": "string",
 				"required": true
+			},
+			"pollingInterval": {
+				"title": "Polling Interval for Removed Devices.",
+				"description": "(Optional) Sets the frequency (in minutes) that the plugin will poll Abode for removed devices. If left blank, polling is disabled. Minimum setting is 5 minutes.",
+				"type": "number",
+				"required": false,
+				"minimum": 5
 			}
 		}
 	}
