@@ -20,7 +20,12 @@
   "suppressNotifications": [
     "prIgnoreNotification"
   ],
-  "ignoreDeps": ["eslint"],
+  "ignoreDeps": [
+    "eslint"
+  ],
+  "lockFileMaintenance": {
+    "enabled": true
+  },
   "vulnerabilityAlerts": {
     "labels": [
       "security"
@@ -28,7 +33,7 @@
     "automerge": true,
     "automergeType": "branch",
     "schedule": [
-      "at any time"
+      "before 5am on Saturdays"
     ]
   },
   "osvVulnerabilityAlerts": true,
