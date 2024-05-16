@@ -66,7 +66,7 @@ jobs:
         id: diff
         continue-on-error: true
         run: |
-          diff pull/${{matrix.paths}} default/${{matrix.paths}} > diff.patch || :
+          diff default/${{matrix.paths}} pull/${{matrix.paths}} > diff.patch || :
           echo "diff<<EOF" >> $GITHUB_OUTPUT
           cat diff.patch >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
