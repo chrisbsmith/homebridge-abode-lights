@@ -1,0 +1,100 @@
+name: Diff
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'src/**'
+      - 'package.json'
+      - '!package-lock.json'
+      - '!yarn.lock'
+
+jobs:
+  changed-files:
+    name: Changed Files
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.changed-files.outputs.all_changed_and_modified_files }}
+    steps:
+      - name: Checkout Default Branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get Changed Files
+        id: changed-files
+        uses: tj-actions/changed-files@v44
+        with:
+          files: |
+            'src/**'
+            package.json
+          files_ignore: |
+            package-lock.json
+            yarn.lock
+          matrix: true
+
+      - name: List All Changed Files
+        run: echo "Changed files = ${{ steps.changed-files.outputs.all_changed_and_modified_files }}"
+
+  diff:
+    name: Show Diff
+    runs-on: ubuntu-latest
+    needs:
+      - changed-files
+    strategy:
+      matrix:
+        paths: ${{ fromJson(needs.changed-files.outputs.matrix) }}
+    steps:
+      - name: Checkout Default Branch
+        uses: actions/checkout@v4
+        with:
+          token: "${{ secrets.GITHUB_TOKEN }}"
+          # ref: "${{ github.event.repository.default_branch }}"
+          ref: "main"
+          path: default
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: "${{ secrets.GITHUB_TOKEN }}"
+          path: pull
+
+        # The diff command will always return an exit code of 1 if differences are found.
+        # the "|| :" forces it to return a 0 allowing the step to continue without failure
+      - name: Generate Diff
+        id: diff
+        continue-on-error: true
+        run: |
+          diff pull/${{matrix.paths}} default/${{matrix.paths}} > diff.patch || :
+          echo "diff<<EOF" >> $GITHUB_OUTPUT
+          cat diff.patch >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+          echo "### Diff" >> $GITHUB_STEP_SUMMARY
+          echo '```diff' >> $GITHUB_STEP_SUMMARY
+          cat diff.patch >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+      - if: ${{ steps.diff.outputs.diff != '' }}
+        name: Add comment
+        uses: mshick/add-pr-comment@v2
+        with:
+          repo-token: "${{ secrets.GITHUB_TOKEN }}"
+          message-id: "${{ github.event.pull_request.number }}/${{ matrix.paths }}"
+          message-failure: Diff was not successful
+          message: |
+            ```diff
+            ${{ steps.diff.outputs.diff }}
+            ```
+
+  # Summarize matrix https://github.community/t/status-check-for-a-matrix-jobs/127354/7
+  diff-success:
+    if: ${{ always() }}
+    needs:
+      - diff
+    name: Diff Successful
+    runs-on: ubuntu-latest
+    steps:
+      - if: ${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') }}
+        name: Check matrix status
+        run: exit 1
