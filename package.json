@@ -27,7 +27,7 @@
 	},
 	"devDependencies": {
 		"@types/node": "20.14.9",
-		"@types/uuid": "9.0.8",
+		"@types/uuid": "10.0.0",
 		"@types/ws": "8.5.10",
 		"@typescript-eslint/eslint-plugin": "7.14.1",
 		"@typescript-eslint/parser": "7.14.1",
@@ -41,7 +41,7 @@
 		"color-convert": "2.0.1",
 		"kelvin-to-rgb": "1.0.2",
 		"lodash": "4.17.21",
-		"uuid": "9.0.1",
+		"uuid": "10.0.0",
 		"ws": "8.17.1"
 	}
 }
