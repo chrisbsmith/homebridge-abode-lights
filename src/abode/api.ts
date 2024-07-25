@@ -128,7 +128,16 @@ api.interceptors.response.use(
       log.debug(`return error code = ${error.response.status}`);
       return;
     }
-    log.error(`Caught an unhandled exception: ${error}.`)
+    if (error.response.data.errorCode === 502) {
+      log.info(`Caught a 502. Attempting to renew session: ${error}`);
+      try {
+        renewSession();
+        return;
+      } catch (_error) {
+        log.error(`Failed to renew the session: ${error}`);
+      }
+    }
+    log.error(`Caught an unhandled exception: ${error}.`);
     return Promise.reject(error);
   },
 );
@@ -192,6 +201,7 @@ const performAuth = async (): Promise<void> => {
 
     const oauthToken = await getOAuthToken();
     auth.oauthToken = oauthToken;
+    log.info('Successfully signed into Abode.');
   } catch (error: any) {
     log.error('Failed to performAuth:', error.message);
     throw new Error('Failed to sign into Abode account');
