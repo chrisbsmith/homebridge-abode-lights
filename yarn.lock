@@ -891,17 +891,17 @@ hexy@^0.3.5:
   resolved "https://registry.npmjs.org/hexy/-/hexy-0.3.5.tgz"
   integrity sha512-UCP7TIZPXz5kxYJnNOym+9xaenxCLor/JyhKieo8y8/bJWunGh9xbhy3YrgYJUQ87WwfXGm05X330DszOfINZw==
 
-homebridge@1.8.3:
-  version "1.8.3"
-  resolved "https://registry.npmjs.org/homebridge/-/homebridge-1.8.3.tgz"
-  integrity sha512-2s8BSV56xf+jGDguKqfpK0Kd14ciWBzX+YpN3iXW7BYF9IVzl4ai/XuoyeG0jMyWB+GN7KgifkAs0IYCAku/BA==
+homebridge@1.8.4:
+  version "1.8.4"
+  resolved "https://registry.npmjs.org/homebridge/-/homebridge-1.8.4.tgz"
+  integrity sha512-Wr5QdI/OCpxCM3rdXyuPUxNlbuwiFngnuj+ZsrCbg5cMwKRMfN+RRGiW2LUSY2BDGQC0cSUt/9TF6tIlov16Qw==
   dependencies:
     chalk "4.1.2"
     commander "12.1.0"
     fs-extra "11.2.0"
     hap-nodejs "0.12.2"
     qrcode-terminal "0.12.0"
-    semver "7.6.2"
+    semver "7.6.3"
     source-map-support "0.5.21"
 
 ignore@^5.2.0, ignore@^5.3.1:
@@ -1412,10 +1412,10 @@ sax@>=0.6.0:
   resolved "https://registry.npmjs.org/sax/-/sax-1.4.1.tgz"
   integrity sha512-+aWOz7yVScEGoKNd4PA10LZ8sk0A/z5+nXQG5giUO5rprX9jgYsTdov9qCchZiPIZezbZH+jRut8nPodFAX4Jg==
 
-semver@7.6.2, semver@^7.6.0:
-  version "7.6.2"
-  resolved "https://registry.npmjs.org/semver/-/semver-7.6.2.tgz"
-  integrity sha512-FNAIBWCx9qcRhoHcgcJ0gvU7SN1lYU2ZXuSfl04bSC5OpvDHFyJCjdNHomPXxjQlCBU67YW64PzY7/VIEH7F2w==
+semver@7.6.3, semver@^7.6.0:
+  version "7.6.3"
+  resolved "https://registry.npmjs.org/semver/-/semver-7.6.3.tgz"
+  integrity sha512-oVekP1cKtI+CTDvHWYFUcMtsK/00wmAEfyqKfNdARm8u1wNVhSgaX7A8d4UuIlUI5e84iEwOhs7ZPYRmzU9U6A==
 
 set-function-length@^1.2.1:
   version "1.2.2"
