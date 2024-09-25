@@ -26,22 +26,22 @@
 		"url": "https://github.com/chrisbsmith/homebridge-abode-lights/issues"
 	},
 	"devDependencies": {
-		"@types/node": "20.14.9",
+		"@types/node": "22.7.1",
 		"@types/uuid": "10.0.0",
-		"@types/ws": "8.5.10",
-		"@typescript-eslint/eslint-plugin": "7.14.1",
-		"@typescript-eslint/parser": "7.14.1",
+		"@types/ws": "8.5.12",
+		"@typescript-eslint/eslint-plugin": "8.7.0",
+		"@typescript-eslint/parser": "8.7.0",
 		"eslint": "8.57.0",
-		"homebridge": "1.8.3",
-		"typescript": "5.5.2"
+		"homebridge": "1.8.4",
+		"typescript": "5.6.2"
 	},
 	"dependencies": {
-		"@types/lodash": "4.17.5",
-		"axios": "1.7.4",
+		"@types/lodash": "4.17.9",
+		"axios": "1.7.7",
 		"color-convert": "2.0.1",
 		"kelvin-to-rgb": "1.0.2",
 		"lodash": "4.17.21",
 		"uuid": "10.0.0",
-		"ws": "8.17.1"
+		"ws": "8.18.0"
 	}
 }
