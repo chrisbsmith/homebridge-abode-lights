@@ -37,7 +37,7 @@
 	},
 	"dependencies": {
 		"@types/lodash": "4.17.5",
-		"axios": "1.7.4",
+		"axios": "1.7.7",
 		"color-convert": "2.0.1",
 		"kelvin-to-rgb": "1.0.2",
 		"lodash": "4.17.21",
