@@ -14,8 +14,6 @@
     "helpers:pinGitHubActionDigests",
     "security:openssf-scorecard"
   ],
-  "onboarding": false,
-  "requireConfig": "optional",
   "dependencyDashboardTitle": "Renovate Dashboard 🤖",
   "suppressNotifications": [
     "prIgnoreNotification"
