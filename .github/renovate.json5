@@ -37,5 +37,10 @@
     ]
   },
   "osvVulnerabilityAlerts": true,
-  "dependencyDashboardOSVVulnerabilitySummary": "all"
+  "dependencyDashboardOSVVulnerabilitySummary": "all",
+  "timezone": "America/New_York",
+  "schedule": [
+    "every weekend",
+    "before 8am"
+  ]
 }
