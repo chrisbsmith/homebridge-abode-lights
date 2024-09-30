@@ -63,6 +63,9 @@ jobs:
       - name: Install package
         run: npm ci
 
+      - name: Build package
+        run: npm run build
+
       - name: Publish to NPM
         run: |
           TAG=$(echo $GITHUB_REF_NAME | grep -oP 'v\d+\.\d+\.\d+-?\K(\w+)?')
