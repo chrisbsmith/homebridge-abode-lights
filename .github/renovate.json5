@@ -30,10 +30,10 @@
     ],
     "automerge": true,
     "automergeType": "branch",
-    "schedule": [
-      "before 5am on Saturdays"
-    ]
   },
+  "schedule": [
+      "before 5am on Saturdays"
+  ],
   "osvVulnerabilityAlerts": true,
   "dependencyDashboardOSVVulnerabilitySummary": "all",
   "timezone": "America/New_York",
