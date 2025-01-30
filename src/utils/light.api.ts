@@ -17,8 +17,6 @@ export const getDevices = async (): Promise<AbodeDevice[]> => {
 };
 
 
-// Create an empty device to return if we get a 404 back
-let emptyDevice: AbodeDevice;
 export const getDevice = async (id: string): Promise<AbodeDevice> => {
   const response = await getDeviceFromAbode(id).
     catch(() => {
@@ -28,7 +26,7 @@ export const getDevice = async (id: string): Promise<AbodeDevice> => {
   // A 404 is returned if the device doesn't exist. We'll just return an
   // empty device and check for that on the return.
   if (response.status === 404) {
-    return emptyDevice;
+    return {} as AbodeDevice;
   }
   // Return the first device since we only called for 1.
   return response.data[0];
