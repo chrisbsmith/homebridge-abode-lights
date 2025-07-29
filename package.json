@@ -32,7 +32,7 @@
 		"@typescript-eslint/eslint-plugin": "8.22.0",
 		"@typescript-eslint/parser": "8.22.0",
 		"eslint": "8.57.0",
-		"homebridge": "1.8.5",
+		"homebridge": "1.11.0",
 		"typescript": "5.7.3"
 	},
 	"dependencies": {
