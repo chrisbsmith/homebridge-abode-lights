@@ -12,8 +12,8 @@
 		"watch": "npm run build && npm link && nodemon"
 	},
 	"engines": {
-		"node": ">=18.0.0",
-		"homebridge": ">=1.0.0"
+		"homebridge": ">=1.8.0 || >=2.0.0",
+		"node": ">=20"
 	},
 	"keywords": [
 		"homebridge-plugin"
