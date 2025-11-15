@@ -47,7 +47,8 @@ jobs:
 
     # Ensure we have permissions to provide our provenance attestation.
     permissions:
-       id-token: write
+      id-token: write
+      contents: read
 
     steps:
       - name: Checkout the repository
@@ -71,5 +72,3 @@ jobs:
           TAG=$(echo $GITHUB_REF_NAME | grep -oP 'v\d+\.\d+\.\d+-?\K(\w+)?')
           echo $TAG
           npm publish --tag ${TAG:-latest} --provenance
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
