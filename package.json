@@ -1,5 +1,6 @@
 {
 	"name": "homebridge-abode-lights",
+	"displayName": "Homebridge Abode Lights",
 	"version": "2.0.4",
 	"description": "Homebridge plugin for integrating Abode Switches and Dimmers into HomeKit.",
 	"author": "Chris Smith",
