@@ -122,13 +122,13 @@ api.interceptors.response.use(
     // Error code 2191 is "We are unable to communicate with your gateway/camera.  Please make sure it has an active internet
     // connection.If the problem persists, please reboot your gateway / camera or contact support for assistance."
     // It's safe to just gobble this one up and keep moving
-    if (error.response.data.errorCode === 2191) {
-      log.debug('Temporarily unable to communicate with your Abode gateway/camera. Error should clear itself.');
-      log.debug('Failed request: ', error.response);
-      log.debug(`return error code = ${error.response.status}`);
+    if (error.response?.data?.errorCode === 2191) {
+      log?.debug('Temporarily unable to communicate with your Abode gateway/camera. Error should clear itself.');
+      log?.debug('Failed request: ', error.response);
+      log?.debug(`return error code = ${error.response.status}`);
       return;
     }
-    log.error(`Caught an unhandled exception: ${error}.`)
+    log?.error(`Caught an unhandled exception: ${error}.`)
     return Promise.reject(error);
   },
 );
@@ -221,9 +221,13 @@ const getSession = async (): Promise<string> => {
 };
 
 export const getDevices = async (): Promise<AbodeDevice[]> => {
-  log.debug('getDevices');
-  const response = await api.get('/api/v1/devices');
-  return response.data;
+  log?.debug('getDevices');
+  try {
+    const response = await api.get('/api/v1/devices');
+    return response.data;
+  } catch (e) {
+    return [];
+  }
 };
 
 export const enum AbodeEventType {

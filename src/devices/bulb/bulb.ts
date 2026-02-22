@@ -3,7 +3,7 @@ import { convertKelvinMireds } from '../../utils/colorFunctions';
 import { AbodeBulb } from './bulbInfo';
 import { setLastUpdatedDevice } from '../devices';
 import { api } from '../../abode/api';
-import { debounce } from 'lodash';
+
 
 export default class Bulb {
   private ID = '';
@@ -16,11 +16,16 @@ export default class Bulb {
       hue: 120,
       saturation: 0,
       brightness: 100,
-      color_temp: 200,
+      color_temp: 2700,
     },
   };
 
-  constructor(private readonly light: any) { }
+  constructor(private readonly light: any) {
+    this.ID = this.light.id;
+    this.UUID = this.light.uuid;
+    this.Name = this.light.name;
+    this.Version = this.light.version;
+  }
 
   public async Init(callback) {
     this.updateStates(() => {
@@ -29,17 +34,14 @@ export default class Bulb {
   }
 
   public getProductId() {
-    // return this.light.id;
     return this.ID;
   }
 
   public getProductUuid() {
-    // return this.light.uuid;
     return this.UUID;
   }
 
   public getProductName() {
-    // return this.light.name;
     return this.Name;
   }
 
@@ -56,7 +58,11 @@ export default class Bulb {
     this.States.color.hue = (this.light.statuses.hue === 'N/A') ? 0 : this.light.statuses.hue;
     this.States.color.saturation = (this.light.statuses.saturation === 'N/A') ? 0 : this.light.statuses.saturation;
     this.States.color.brightness = (this.light.statuses.level === 'N/A') ? 0 : this.light.statuses.level;
-    this.States.color.color_temp = Math.floor(convertKelvinMireds(this.light.statuses.color_temp));
+    const rawTemp = this.light.statuses.color_temp;
+    const mireds = (rawTemp !== null && Number.isFinite(Number(rawTemp)) && Number(rawTemp) > 0)
+      ? Math.floor(convertKelvinMireds(Number(rawTemp)))
+      : this.getMaxMired(); // default warm (e.g. 370 mireds)
+    this.States.color.color_temp = mireds;
 
     callback();
   }
@@ -77,32 +83,20 @@ export default class Bulb {
       action = 'off';
     }
     setLastUpdatedDevice(this.getProductId());
-    setBulbPower(this.getProductUuid(), { action }).catch((error) => {
-      throw new Error(error);
-    });
+    await setBulbPower(this.getProductUuid(), { action });
   }
 
   async setBrightness(value) {
-    if (value > 100) {
-      value = 100;
-    } else if (value < 0) {
-      value = 0;
-    }
-    this.States.color.brightness = value;
+    this.States.color.brightness = Math.max(0, Math.min(value, 100));
     const data = {
       action: 'setpercent',
-      percentage: value,
+      percentage: this.States.color.brightness,
     };
 
     setLastUpdatedDevice(this.getProductId());
-    this.updateBulb(this.getProductUuid(), data)?.catch((error) => {
-      throw new Error(error);
-    });
+    await this.updateBulb(this.getProductUuid(), data);
   }
 
-  // HomeKit always triggers a Hue update before a Saturation update. Rather
-  // than sending two requests to Abode to update Hue and then Saturation, just set the hue on
-  // the device, and then let the setSaturation function handle the update to Abode.
   async setHue(value) {
     this.States.color.hue = value;
   }
@@ -116,21 +110,21 @@ export default class Bulb {
       saturation: value,
     };
     setLastUpdatedDevice(this.getProductId());
-    this.updateBulb(this.getProductUuid(), data)?.catch((error) => {
-      throw new Error(error);
-    });
+    await this.updateBulb(this.getProductUuid(), data);
   }
 
   async setColorTemperature(value) {
+    // value is in Kelvin; convert to mireds and clamp to bulb's mired range
+    const mireds = convertKelvinMireds(value);
+    const calculatedTemp = Math.floor(Math.min(Math.max(mireds, this.getMinMired()), this.getMaxMired()));
     const data = {
       action: 'setcolortemperature',
-      colorTemperature: Math.min(Math.max(convertKelvinMireds(value), this.getMinKelvin()), this.getMaxKelvin()),
+      colorTemperature: calculatedTemp,
     };
+    this.States.color.color_temp = calculatedTemp;
 
     setLastUpdatedDevice(this.getProductId());
-    this.updateBulb(this.getProductUuid(), data)?.catch((error) => {
-      throw new Error(error);
-    });
+    await this.updateBulb(this.getProductUuid(), data);
   }
 
   getOn() {
@@ -150,9 +144,12 @@ export default class Bulb {
   }
 
   getColorTemperature() {
-    let value = this.States.color.color_temp;
-    if (value < 154) {
-      value = 154;
+    let value = Number(this.States.color.color_temp);
+    if (!Number.isFinite(value)) {
+      value = this.getMaxMired(); // default warm (e.g. 370 mireds)
+    }
+    if (value < 153) {
+      value = 153;
     } else if (value > 500) {
       value = 500;
     }
@@ -182,7 +179,11 @@ export default class Bulb {
   // This API call has to be in declared at the bulb object level so that
   // each bulb object inherits the function and does not get caught in the
   // debounce
-  updateBulb = debounce(async (id: string, data: any) => {
-    api.post(`/integrations/v1/devices/${id}`, data);
-  }, 500);
+  // updateBulb = debounce(async (id: string, data: any) => {
+  //   await api.post(`/integrations/v1/devices/${id}`, data);
+  // }, 500);
+
+  async updateBulb(id: string, data: any) {
+    await api.post(`/integrations/v1/devices/${id}`, data);
+  }
 }

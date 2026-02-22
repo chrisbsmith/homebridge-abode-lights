@@ -27,9 +27,7 @@ export default class Dimmer {
     this.States.power = status;
     setLastUpdatedDevice(this.getProductId());
 
-    updateDimmer(this.getProductId(), { status }).catch((error) => {
-      throw new Error(error);
-    });
+    await updateDimmer(this.getProductId(), { status });
   }
 
   private async setBrightnessLevel(level: any) {
@@ -42,18 +40,16 @@ export default class Dimmer {
 
     this.States.brightness = level;
     setLastUpdatedDevice(this.getProductId());
-    updateDimmer(this.getProductId(), { level }).catch((error) => {
-      throw new Error(error);
-    });
+    await updateDimmer(this.getProductId(), { level });
   }
 
-  // When turning the dimmer on, set the birghtness to the last known brightness state.
+  // When turning the dimmer on, set the brightness to the last known brightness state.
   async setOn(value: any) {
-    this.setPower(value);
+    return this.setPower(value);
   }
 
   async setBrightness(value: any) {
-    this.setBrightnessLevel(value);
+    return this.setBrightnessLevel(value);
   }
 
   getOn() {
