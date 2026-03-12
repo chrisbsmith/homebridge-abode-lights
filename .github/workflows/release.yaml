@@ -6,6 +6,11 @@ on:
     # run only against tags
     tags:
       - "*"
+
+permissions:
+  contents: read
+
+
 jobs:
   release:
 

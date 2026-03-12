@@ -5,10 +5,13 @@ on:
     branches:
       - main
     paths:
-      - 'src/**'
-      - 'package.json'
-      - '!package-lock.json'
-      - '!yarn.lock'
+      - "src/**"
+      - "package.json"
+      - "!package-lock.json"
+      - "!yarn.lock"
+
+permissions:
+  contents: read
 
 jobs:
   changed-files:
