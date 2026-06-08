@@ -43,6 +43,9 @@ jobs:
   diff:
     name: Show Diff
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
     needs:
       - changed-files
     strategy:
