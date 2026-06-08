@@ -181,7 +181,8 @@ const performAuth = async (): Promise<void> => {
     }
 
     const cookieResponse = authResponse.headers['set-cookie'];
-    const cookieDict = parseCookies((cookieResponse || []).join(';'));
+
+    const cookieDict = parseCookies(cookieResponse);
     const session = cookieDict['SESSION'];
     if (!session) {
       throw new Error('Response did not contain session.');
@@ -234,16 +235,21 @@ export const enum AbodeEventType {
   DeviceUpdate = 'com.goabode.device.update',
 }
 
-const parseCookies = (cookies: string | undefined): { [key: string]: string | undefined } => {
-  if (!cookies) {
+const parseCookies = (cookieStrings: string[] | undefined): { [key: string]: string | undefined } => {
+  if (!cookieStrings?.length) {
     return {};
   }
 
-  return cookies
-    .split(';')
-    .map((v) => v.split('='))
-    .reduce((acc: { [key: string]: string }, v) => {
-      acc[decodeURIComponent(v[0].trim())] = decodeURIComponent(v[1].trim());
-      return acc;
-    }, {});
+  return cookieStrings.reduce((acc: { [key: string]: string }, cookieString) => {
+    const nameValue = cookieString.split(';')[0];
+    const eqIndex = nameValue.indexOf('=');
+    if (eqIndex > -1) {
+      const key = decodeURIComponent(nameValue.slice(0, eqIndex).trim());
+      const value = decodeURIComponent(nameValue.slice(eqIndex + 1).trim());
+      if (!acc[key]) {
+        acc[key] = value;
+      }
+    }
+    return acc;
+  }, {});
 };
