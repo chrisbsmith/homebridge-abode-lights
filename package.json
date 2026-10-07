@@ -33,7 +33,7 @@
 		"@types/lodash": "^4.17.24",
 		"@types/node": "^25.9.2",
 		"@types/uuid": "11.0.0",
-		"@types/ws": "8.18.1",
+		"@types/ws": "8.18.2",
 		"@typescript-eslint/eslint-plugin": "^8.60.1",
 		"@typescript-eslint/parser": "^8.60.1",
 		"axios-mock-adapter": "^2.1.0",
